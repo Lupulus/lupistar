@@ -1,0 +1,92 @@
+# Configuration de base de données (sensible)
+/scripts-php/co-bdd.php
+
+# Base de données
+db_wolf-film.sql
+*.sql
+*.db
+*.sqlite
+
+# Dossiers de contenu utilisateur et médias
+/publiclisteimg/
+/img/
+/img-temp/
+/gif/
+
+# Logs et fichiers temporaires
+/logs/
+*.log
+*.tmp
+*.temp
+
+# Dépendances Composer
+/vendor/
+composer.lock
+
+# Configuration et fichiers sensibles
+*.env
+.env
+.env.local
+.env.production
+config.php
+settings.php
+
+# Fichiers de sauvegarde et temporaires
+*~
+*.bak
+*.backup
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Fichiers d'IDE et éditeurs
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Cache et sessions PHP
+/cache/
+/sessions/
+/tmp/
+
+# Fichiers de configuration serveur
+.htpasswd
+php.ini
+.user.ini
+
+# Fichiers uploadés par les utilisateurs
+/uploads/
+/user-uploads/
+
+# Certificats SSL et clés
+*.pem
+*.key
+*.crt
+*.p12
+
+# Fichiers de développement
+/tests/
+/dev/
+debug.php
+test.php
+
+# Documentation générée
+/docs/build/
+/api-docs/
+
+# Fichiers système Windows
+desktop.ini
+$RECYCLE.BIN/
+
+# Fichiers système macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Fichiers système Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*

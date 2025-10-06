@@ -1,0 +1,43 @@
+{
+  "conversions": {
+    "walt disney": {
+      "patterns": [
+        "walt disney",
+        "walt disney pictures",
+        "walt disney compagny",
+        "walt disney company",
+        "waltdisney",
+        "waltdisneypicture",
+        "waltdisneycompagny",
+        "disney"
+      ],
+      "target": "Walt Disney"
+    },
+    "dreamworks": {
+      "patterns": [
+        "dreamworks",
+        "dreamworks animation",
+        "dreamworks pictures",
+        "dreamwork",
+        "dream works"
+      ],
+      "target": "DreamWorks Animation"
+    },
+    "pixar": {
+      "patterns": [
+        "pixar",
+        "pixar animation studios",
+        "pixar studios"
+      ],
+      "target": "Pixar"
+    },
+    "studio ghibli": {
+      "patterns": [
+        "studio ghibli",
+        "ghibli",
+        "ghibli studio"
+      ],
+      "target": "Studio Ghibli"
+    }
+  }
+}

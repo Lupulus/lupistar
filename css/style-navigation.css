@@ -1,0 +1,430 @@
+/* ============================================================================ */
+/*                          STYLE NAVIGATION UNIFIÉ                            */
+/*                    Header & Footer pour toutes les pages                    */
+/* ============================================================================ */
+
+:root {
+    --primary-dark: #1a1a1a;
+    --secondary-dark: #2d2d2d;
+    --tertiary-dark: #404040;
+    --light-gray: #6a6a6a;
+    --medium-gray: #505050;
+    --accent-orange: #ff8c00;
+    --accent-orange-hover: #ff7700;
+    --accent-orange-light: rgba(255, 140, 0, 0.1);
+    --text-white: #ffffff;
+    --text-light-gray: #e0e0e0;
+    --text-medium-gray: #b0b0b0;
+    --shadow-dark: rgba(0, 0, 0, 0.3);
+    --shadow-darker: rgba(0, 0, 0, 0.6);
+}
+
+/* Navigation */
+.navbar {
+    display: flex;
+    height: 80px;
+    width: 100%;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0;
+    background: linear-gradient(135deg, var(--secondary-dark) 0%, var(--tertiary-dark) 100%);
+    box-shadow: 0 2px 10px var(--shadow-darker);
+    border-bottom: 2px solid var(--accent-orange);
+}
+
+.navbar .gif {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 60px;
+    padding-left: 1rem;
+}
+
+.menu {
+    display: flex;
+    height: 100%;
+    align-items: center;
+    justify-content: center;
+    gap: 2rem;
+    margin: 0 auto;
+}
+
+.menu a {
+    text-decoration: none;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.menu a::after {
+    content: '';
+    position: absolute;
+    bottom: -5px;
+    left: 0;
+    width: 0;
+    height: 2px;
+    background-color: var(--accent-orange);
+    transition: width 0.3s ease;
+}
+
+.menu a:hover::after,
+.menu a.active::after {
+    width: 100%;
+}
+
+.menu a:hover {
+    color: var(--accent-orange);
+    text-shadow: 0 0 8px var(--accent-orange-light);
+}
+
+.menu .btn {
+    color: var(--text-white);
+    font-size: 18px;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    border-radius: 8px;
+    padding: 12px 20px;
+    background: transparent;
+    transition: all 0.3s ease;
+}
+
+.menu .btn.active {
+    color: var(--accent-orange);
+    background: var(--accent-orange-light);
+}
+
+.menu .btn:hover {
+    background: var(--accent-orange-light);
+    transform: translateY(-2px);
+}
+
+/* Bouton désactivé (spécifique admin) */
+.menu .btn.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+    background: var(--medium-gray) !important;
+    color: var(--text-medium-gray) !important;
+}
+
+.menu .btn.disabled:hover {
+    background: var(--medium-gray) !important;
+    transform: none !important;
+    color: var(--text-medium-gray) !important;
+}
+
+/* Profil */
+.profil {
+    margin-right: 1%;
+    position: relative;
+}
+
+/* Badge de notification */
+.notification-badge {
+    position: absolute;
+    bottom: -2px;
+    right: -2px;
+    background: #ff8c00;
+    color: #000;
+    border: 2px solid #000;
+    border-radius: 50%;
+    min-width: 20px;
+    height: 20px;
+    font-size: 12px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    transition: all 0.3s ease;
+}
+
+.notification-badge:hover {
+    transform: scale(1.1);
+    background: #ff7700;
+}
+
+.notification-badge.hidden {
+    display: none;
+}
+
+/* Badge pour le menu déroulant */
+.menu-deroulant .mon-compte {
+    position: relative;
+}
+
+.menu-deroulant .notification-badge {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    bottom: auto;
+    min-width: 18px;
+    height: 18px;
+    font-size: 11px;
+}
+
+/* Style général pour toutes les images de profil */
+.profil img {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    border: 2px solid transparent;
+}
+
+/* Style spécifique pour l'image par défaut (avec filtre blanc) */
+.profil img.profil-default {
+    filter: brightness(0) saturate(100%) invert(96%) sepia(6%) saturate(15%) hue-rotate(329deg) brightness(107%) contrast(100%);
+}
+
+.profil img.profil-default:hover {
+    filter: brightness(0) saturate(100%) invert(69%) sepia(40%) saturate(6374%) hue-rotate(360deg) brightness(103%) contrast(105%);
+    border-color: var(--accent-orange);
+    transform: scale(1.1);
+}
+
+/* Style spécifique pour les images personnalisées (fond transparent) */
+.profil img.profil-custom {
+    background: transparent;
+    filter: none;
+}
+
+.profil img.profil-custom:hover {
+    border-color: var(--accent-orange);
+    transform: scale(1.1);
+}
+
+/* Menu déroulant */
+.menu-deroulant {
+    display: none;
+    position: absolute;
+    background: linear-gradient(135deg, var(--secondary-dark) 0%, var(--tertiary-dark) 100%);
+    border-radius: 12px;
+    min-width: 180px;
+    box-shadow: 0 8px 25px var(--shadow-darker);
+    z-index: 1000;
+    right: 0;
+    top: 100%;
+    margin-top: -5px;
+    border: 1px solid var(--light-gray);
+}
+
+.profil:hover .menu-deroulant {
+    display: block;
+}
+
+.menu-deroulant a {
+    color: var(--text-light-gray);
+    background: transparent;
+    padding: 12px 16px;
+    text-decoration: none;
+    display: block;
+    text-align: center;
+    transition: all 0.3s ease;
+    border-radius: 8px;
+    margin: 4px;
+}
+
+.menu-deroulant a:hover {
+    background: var(--accent-orange);
+    color: var(--text-white);
+    transform: translateX(5px);
+}
+
+/* Notification déroulant (spécifique admin) */
+.notification-deroulant {
+    display: none;
+    position: absolute;
+    background-color: #ffcc00;
+    color: black;
+    border-radius: 5px;
+    text-align: center;
+    padding: 10px;
+    width: 200px;
+    left: -230px;
+    top: -10px;
+}
+
+/* Styles pour la notification de restriction d'accès */
+.film-restriction-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.film-restriction-container .demande-film.disabled {
+    color: var(--text-medium-gray);
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.film-restriction-container .demande-film.disabled:hover {
+    background: transparent;
+    color: var(--text-medium-gray);
+    transform: none;
+}
+
+.restriction-tooltip {
+    position: absolute;
+    right: 100%;
+    top: 50%;
+    transform: translateY(-50%);
+    margin-left: 10px;
+    display: flex;
+    align-items: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+    z-index: 1001;
+}
+
+.film-restriction-container:hover .restriction-tooltip {
+    opacity: 1;
+    visibility: visible;
+}
+
+.tooltip-arrow {
+    color: #ff4444;
+    font-size: 12px;
+    margin-right: 5px;
+}
+
+.tooltip-text {
+    background: #ff4444;
+    color: var(--text-white);
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    white-space: nowrap;
+    box-shadow: 0 2px 8px rgba(255, 68, 68, 0.3);
+}
+
+/* ============================================================================ */
+/*                                  FOOTER                                      */
+/* ============================================================================ */
+
+footer {
+    margin-top: auto;
+    padding: 1rem;
+    background: linear-gradient(135deg, var(--secondary-dark) 0%, var(--primary-dark) 100%);
+    color: var(--text-medium-gray);
+    text-align: center;
+    border-top: 2px solid var(--accent-orange);
+    box-shadow: 0 -4px 15px var(--shadow-dark);
+}
+
+footer p {
+    margin: 5px 0;
+    font-size: 0.9rem;
+}
+
+footer nav {
+    margin-top: 10px;
+}
+
+footer nav a {
+    color: var(--text-medium-gray);
+    text-decoration: none;
+    transition: all 0.3s ease;
+    font-size: 0.9rem;
+    position: relative;
+}
+
+footer nav a:hover {
+    color: var(--accent-orange);
+    text-shadow: 0 0 8px rgba(255, 140, 0, 0.3);
+}
+
+footer nav a::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    width: 0;
+    height: 1px;
+    background: var(--accent-orange);
+    transition: width 0.3s ease;
+}
+
+footer nav a:hover::after {
+    width: 100%;
+}
+
+/* ============================================================================ */
+/*                              MEDIA QUERIES                                  */
+/* ============================================================================ */
+
+/* Media queries pour les résolutions plus petites */
+@media screen and (max-width: 768px) {
+    .navbar {
+        padding: 0;
+        flex-direction: column;
+        height: auto;
+        padding: 1rem 0;
+    }
+    
+    .navbar .gif {
+        padding-left: 0;
+    }
+    
+    .menu {
+        gap: 1rem;
+        flex-wrap: wrap;
+        justify-content: center;
+        width: 100%;
+        margin-right: 0;
+    }
+    
+    .menu .btn {
+        font-size: 16px;
+        padding: 10px 15px;
+    }
+    
+    .profil {
+        margin-right: 0;
+        margin-top: 1rem;
+    }
+    
+    .menu-deroulant {
+        position: fixed;
+        right: 10px;
+        top: auto;
+        bottom: 10px;
+        margin-top: 0;
+    }
+}
+
+@media screen and (max-width: 480px) {
+    .menu {
+        gap: 0.5rem;
+    }
+    
+    .menu .btn {
+        font-size: 14px;
+        padding: 8px 12px;
+    }
+    
+    .navbar .gif {
+        height: 50px;
+    }
+    
+    .profil img {
+        width: 40px;
+        height: 40px;
+    }
+    
+    footer {
+        padding: 0.5rem;
+    }
+    
+    footer p {
+        font-size: 0.8rem;
+    }
+    
+    footer nav a {
+        font-size: 0.8rem;
+    }
+}

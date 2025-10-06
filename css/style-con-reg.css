@@ -1,0 +1,296 @@
+/* Variables de couleur pour la charte graphique */
+:root {
+    --primary-dark: #1a1a1a;
+    --secondary-dark: #2d2d2d;
+    --tertiary-dark: #404040;
+    --light-gray: #6a6a6a;
+    --medium-gray: #505050;
+    --accent-orange: #ff8c00;
+    --accent-orange-hover: #ff7700;
+    --accent-orange-light: rgba(255, 140, 0, 0.1);
+    --text-white: #ffffff;
+    --text-light-gray: #e0e0e0;
+    --text-medium-gray: #b0b0b0;
+    --shadow-dark: rgba(0, 0, 0, 0.3);
+    --shadow-darker: rgba(0, 0, 0, 0.6);
+    --success-green: #28a745;
+    --error-red: #dc3545;
+    --warning-yellow: #ffc107;
+}
+
+/* Reset et base */
+html,
+body {
+    display: flex;
+    flex-direction: column;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-weight: 300;
+    overflow-x: hidden;
+    margin: 0;
+    padding: 0;
+    color: var(--text-light-gray);
+    min-height: 100vh;
+}
+
+/* Conteneur du fond d'écran flouté */
+.background {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -10;
+    background: url('../img/background.webp') no-repeat center center fixed;
+    background-size: cover;
+    filter: blur(var(--blur-intensity, 0px));
+}
+
+/* Dégradé gris progressif vers le bas */
+.background::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(to bottom, rgba(0, 0, 0, 0) 30%, var(--primary-dark) 100%);
+}
+
+/* Conteneur du formulaire */
+.form-container {
+    max-width: 400px;
+    margin: auto;
+    padding: 1.5rem;
+    /* margin-top: 1.5rem; */
+    background: linear-gradient(135deg, var(--secondary-dark), var(--tertiary-dark));
+    border-radius: 12px;
+    box-shadow: 0 8px 32px var(--shadow-darker);
+    border: 1px solid var(--medium-gray);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(10px);
+    transition: all 0.3s ease;
+}
+
+.form-container:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 40px var(--shadow-darker);
+}
+
+.form-container h2 {
+    text-align: center;
+    margin-bottom: 30px;
+    color: var(--text-white);
+    font-size: 28px;
+    font-weight: 400;
+    text-shadow: 2px 2px 4px var(--shadow-dark);
+}
+
+/* Styles du formulaire */
+.form-container form {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    gap: 20px;
+}
+
+.form-container form div {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.form-container form label {
+    text-align: center;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: var(--text-light-gray);
+    font-weight: 400;
+    margin-bottom: 8px;
+    font-size: 14px;
+}
+
+.form-container form input[type="text"],
+.form-container form input[type="password"],
+.form-container form input[type="email"] {
+    padding: 12px 16px;
+    margin-bottom: 0;
+    border: 2px solid var(--medium-gray);
+    border-radius: 8px;
+    width: 280px;
+    background: var(--tertiary-dark);
+    color: var(--text-white);
+    font-size: 16px;
+    transition: all 0.3s ease;
+    text-align: center;
+}
+
+.form-container form input[type="text"]:focus,
+.form-container form input[type="password"]:focus,
+.form-container form input[type="email"]:focus {
+    outline: none;
+    border-color: var(--accent-orange);
+    box-shadow: 0 0 0 3px var(--accent-orange-light);
+    background: var(--secondary-dark);
+}
+
+.form-container form input::placeholder {
+    color: var(--text-medium-gray);
+    opacity: 0.8;
+}
+
+/* Styles du bouton */
+.form-container form button {
+    padding: 14px 32px;
+    background: linear-gradient(135deg, var(--accent-orange), var(--accent-orange-hover));
+    color: var(--text-white);
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(255, 140, 0, 0.3);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-top: 10px;
+}
+
+.form-container form button:hover {
+    background: linear-gradient(135deg, var(--accent-orange-hover), #ff6600);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(255, 140, 0, 0.4);
+}
+
+.form-container form button:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 10px rgba(255, 140, 0, 0.3);
+}
+
+/* Styles des liens */
+.form-container .links {
+    text-align: center;
+    margin-top: 25px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.form-container .links a {
+    color: var(--text-light-gray);
+    text-decoration: none;
+    font-size: 14px;
+    transition: all 0.3s ease;
+    padding: 8px 16px;
+    border-radius: 6px;
+    display: inline-block;
+}
+
+.form-container .links a:hover {
+    color: var(--accent-orange);
+    background: var(--accent-orange-light);
+    text-decoration: none;
+    transform: translateY(-1px);
+}
+
+/* Message informatif pour l'email */
+.email-info {
+    font-size: 12px;
+    color: var(--text-medium-gray);
+    text-align: center;
+    margin-top: 5px;
+    font-style: italic;
+    line-height: 1.4;
+}
+
+/* Styles pour la zone de message */
+#message-container {
+    margin-top: 20px;
+    padding: 15px;
+    border-radius: 8px;
+    font-size: 14px;
+    text-align: center;
+    transition: all 0.3s ease;
+}
+
+#message-container.success {
+    background: linear-gradient(135deg, var(--success-green), #22c55e);
+    border: 1px solid #16a34a;
+    color: var(--text-white);
+    box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+}
+
+#message-container.error {
+    background: linear-gradient(135deg, var(--error-red), #ef4444);
+    border: 1px solid #dc2626;
+    color: var(--text-white);
+    box-shadow: 0 4px 15px rgba(220, 53, 69, 0.3);
+}
+
+#message-container.warning {
+    background: linear-gradient(135deg, var(--warning-yellow), #fbbf24);
+    border: 1px solid #f59e0b;
+    color: var(--primary-dark);
+    box-shadow: 0 4px 15px rgba(255, 193, 7, 0.3);
+}
+
+#message-container p {
+    margin: 0;
+    font-weight: 500;
+}
+
+
+/* Conteneur pour les cases à cocher */
+.checkbox-container {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 1rem;
+}
+
+.checkbox-container input[type="checkbox"] {
+    margin-top: 3px;
+    width: 18px;
+    height: 18px;
+    accent-color: var(--accent-orange);
+    cursor: pointer;
+}
+
+.checkbox-container label {
+    font-size: 0.9rem;
+    color: var(--text-light-gray);
+    line-height: 1.4;
+    cursor: pointer;
+    flex: 1;
+}
+
+.checkbox-container label a {
+    color: var(--accent-orange);
+    text-decoration: none;
+    transition: all 0.3s ease;
+}
+
+.checkbox-container label a:hover {
+    color: var(--accent-orange-hover);
+    text-decoration: underline;
+}
+
+/* Styles pour le bouton désactivé */
+button[disabled] {
+    opacity: 0.5 !important;
+    cursor: not-allowed !important;
+    background: linear-gradient(135deg, #666, #888) !important;
+    transform: none !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2) !important;
+}
+
+button[disabled]:hover {
+    background: linear-gradient(135deg, #666, #888) !important;
+    transform: none !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2) !important;
+}
