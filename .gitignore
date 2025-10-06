@@ -1,5 +1,6 @@
 # Configuration de base de données (sensible)
 /scripts-php/co-bdd.php
+/scripts-php/forgot-password-script.php
 
 # Base de données
 db_wolf-film.sql
