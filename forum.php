@@ -216,6 +216,18 @@ if ($discussion_id) {
             <p>Discutez de vos films et séries préférés avec la communauté</p>
         </div>
 
+        <!-- Avertissement de développement -->
+        <div id="dev-warning" class="dev-warning-banner">
+            <div class="dev-warning-content">
+                <div class="dev-warning-icon">⚠️</div>
+                <div class="dev-warning-text">
+                    <strong>Forum en développement</strong>
+                    <p>Le forum est actuellement en cours de développement. Vous pourriez rencontrer des bugs, des problèmes ou des fonctionnalités manquantes. Merci de votre compréhension !</p>
+                </div>
+                <button class="dev-warning-close" onclick="closeDevelopmentWarning()">&times;</button>
+            </div>
+        </div>
+
         <!-- Navigation du forum -->
         <div class="forum-navigation">
             <div class="forum-breadcrumb">
@@ -561,6 +573,38 @@ if ($discussion_id) {
     <script src="./scripts-js/profile-image-persistence.js" defer></script>
     <script src="./scripts-js/background.js" defer></script>
     <script src="./scripts-js/notification-badge.js" defer></script>
+    
+    <!-- Inclusion du système de popup personnalisé -->
+    <?php include './scripts-php/popup.php'; ?>
+    <script src="./scripts-js/custom-popup.js"></script>
+    
+    <script>
+        // Fonction pour fermer l'avertissement de développement
+        function closeDevelopmentWarning() {
+            const warning = document.getElementById('dev-warning');
+            if (warning) {
+                warning.style.opacity = '0';
+                warning.style.transform = 'translateY(-20px)';
+                setTimeout(() => {
+                    warning.style.display = 'none';
+                    // Sauvegarder dans localStorage que l'utilisateur a fermé l'avertissement
+                    localStorage.setItem('forum-dev-warning-closed', 'true');
+                }, 300);
+            }
+        }
+        
+        // Vérifier si l'avertissement a déjà été fermé
+        document.addEventListener('DOMContentLoaded', function() {
+            const warningClosed = localStorage.getItem('forum-dev-warning-closed');
+            if (warningClosed === 'true') {
+                const warning = document.getElementById('dev-warning');
+                if (warning) {
+                    warning.style.display = 'none';
+                }
+            }
+        });
+    </script>
+    
     <?php include './scripts-php/scroll-to-top.php'; ?>
 </body>
 </html>

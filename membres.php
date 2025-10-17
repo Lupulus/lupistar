@@ -335,7 +335,7 @@ $current_page = basename($_SERVER['PHP_SELF'], ".php");
 
     // Récupérer les membres depuis la base de données
     try {
-        $sql = "SELECT id, username, email, titre, restriction, avertissements, recompenses, photo_profil FROM membres";
+        $sql = "SELECT id, username, email, titre, restriction, avertissements, recompenses, photo_profil, demande_promotion FROM membres";
         $result = $pdo->query($sql);
 
         if ($result && $result->rowCount() > 0) {
@@ -364,9 +364,53 @@ $current_page = basename($_SERVER['PHP_SELF'], ".php");
             $photo_profil = $row['photo_profil'] ?? 'img/img-profile/profil.png';
             echo "<img src='" . htmlspecialchars($photo_profil) . "' alt='Photo de profil' class='membre-photo-profil'>";
             echo "<span class='membre-nom'>" . htmlspecialchars($row['username']) . "</span>";
+            // Ajouter un badge de notification si l'utilisateur a une demande de promotion
+            if (isset($row['demande_promotion']) && $row['demande_promotion'] == 1) {
+                echo "<span class='promotion-badge' title='Demande de promotion en cours'>🔔</span>";
+            }
             echo "</td>";
             echo "<td class='membre-email'>" . htmlspecialchars($row['email'] ?? 'Non renseigné') . "</td>";
-            echo "<td><span class='membre-titre titre-" . strtolower(str_replace('-', '-', $row['titre'])) . "' id='titre-" . htmlspecialchars($row['id']) . "'>" . htmlspecialchars($row['titre']) . "</span></td>";
+            echo "<td class='titre-cell'>";
+            
+            // Si il y a une demande de promotion, afficher la nouvelle structure
+            if (isset($row['demande_promotion']) && $row['demande_promotion'] == 1 && $canModify) {
+                // Obtenir le titre suivant
+                include_once './scripts-php/controller-recompense.php';
+                $rewardController = new RecompenseController($pdo);
+                $titreSuivant = '';
+                $titres_ordre = ['Membre', 'Amateur', 'Fan', 'NoLife'];
+                $index = array_search($row['titre'], $titres_ordre);
+                if ($index !== false && $index < count($titres_ordre) - 1) {
+                    $titreSuivant = $titres_ordre[$index + 1];
+                }
+                
+                echo "<div class='promotion-container'>";
+                
+                echo "<div class='promotion-titles'>";
+                echo "<div class='current-title'>";
+                echo "<span class='membre-titre titre-" . strtolower(str_replace('-', '-', $row['titre'])) . "' id='titre-" . htmlspecialchars($row['id']) . "'>" . htmlspecialchars($row['titre']) . "</span>";
+                echo "</div>";
+                
+                echo "<div class='promotion-arrow-container'>";
+                echo "<button class='btn-reject promotion-btn-left' onclick='traiterPromotion(" . htmlspecialchars($row['id']) . ", \"reject\")' title='Rejeter la promotion'>✗</button>";
+                echo "<div class='promotion-arrow'>↓</div>";
+                echo "<button class='btn-approve promotion-btn-right' onclick='traiterPromotion(" . htmlspecialchars($row['id']) . ", \"approve\")' title='Approuver la promotion'>✓</button>";
+                echo "</div>";
+                
+                echo "<div class='next-title'>";
+                if ($titreSuivant) {
+                    echo "<span class='membre-titre titre-" . strtolower(str_replace('-', '-', $titreSuivant)) . "'>" . htmlspecialchars($titreSuivant) . "</span>";
+                }
+                echo "</div>";
+                echo "</div>";
+                
+                echo "</div>";
+            } else {
+                // Affichage normal sans demande de promotion
+                echo "<span class='membre-titre titre-" . strtolower(str_replace('-', '-', $row['titre'])) . "' id='titre-" . htmlspecialchars($row['id']) . "'>" . htmlspecialchars($row['titre']) . "</span>";
+            }
+            
+            echo "</td>";
             echo "<td><span class='membre-restriction restriction-" . strtolower(str_replace(' ', '-', $row['restriction'] ?? 'aucune')) . "' id='restriction-" . htmlspecialchars($row['id']) . "'>" . htmlspecialchars($row['restriction'] ?? 'Aucune') . "</span></td>";
             // Colonne Avertissements avec boutons intégrés
             echo "<td class='membre-avertissements'>";
@@ -459,6 +503,9 @@ $current_page = basename($_SERVER['PHP_SELF'], ".php");
                 echo "<button class='dropbtn disabled' disabled title='Permissions insuffisantes'>Modifier Pseudo</button>";
             }
             echo "</div>";
+            
+            // Boutons pour traiter les demandes de promotion (seulement si il y a une demande) - DÉPLACÉS DANS LA COLONNE TITRE
+            // Cette section est maintenant vide car les boutons sont dans la colonne titre
             
             echo "</td>";
             echo "</tr>";
@@ -838,6 +885,75 @@ $current_page = basename($_SERVER['PHP_SELF'], ".php");
         if (currentIcon) {
             currentIcon.innerHTML = direction === 'asc' ? '↑' : '↓';
         }
+    }
+    
+    // Fonction pour traiter les demandes de promotion
+    function traiterPromotion(userId, action) {
+        const actionText = action === 'approve' ? 'approuver' : 'rejeter';
+        
+        // Utiliser la popup personnalisée au lieu de confirm()
+        customConfirm(`Êtes-vous sûr de vouloir ${actionText} cette demande de promotion ?`, 'Confirmation de promotion')
+        .then((confirmed) => {
+            if (confirmed) {
+                fetch('./scripts-php/traiter-promotion.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        user_id: userId,
+                        action: action
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showNotification(data.message, 'success');
+                        
+                        // Mettre à jour l'affichage
+                        const row = document.querySelector(`tr[data-id="${userId}"]`);
+                        if (row) {
+                            // Supprimer le badge de notification
+                            const badge = row.querySelector('.promotion-badge');
+                            if (badge) {
+                                badge.remove();
+                            }
+                            
+                            // Supprimer les boutons de promotion
+                            const promotionContainer = row.querySelector('.promotion-container');
+                            if (promotionContainer) {
+                                // Remplacer par le titre simple
+                                const titreElement = row.querySelector('.membre-titre');
+                                if (titreElement && action === 'approve' && data.new_title) {
+                                    titreElement.textContent = data.new_title;
+                                    titreElement.className = `membre-titre titre-${data.new_title.toLowerCase().replace('-', '-')}`;
+                                }
+                                
+                                // Remplacer le container de promotion par le titre simple
+                                const newTitleElement = document.createElement('span');
+                                newTitleElement.className = titreElement ? titreElement.className : 'membre-titre';
+                                newTitleElement.textContent = action === 'approve' && data.new_title ? data.new_title : titreElement.textContent;
+                                
+                                promotionContainer.parentNode.replaceChild(newTitleElement, promotionContainer);
+                            }
+                        }
+                    } else {
+                        showNotification(data.message, 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Erreur:', error);
+                    showNotification('Erreur lors du traitement de la demande', 'error');
+                });
+            }
+        })
+        .catch(error => {
+            console.error('Erreur popup:', error);
+            // Fallback vers confirm() natif en cas d'erreur
+            if (confirm(`Êtes-vous sûr de vouloir ${actionText} cette demande de promotion ?`)) {
+                // Code de traitement identique...
+            }
+        });
     }
 </script>
 <script src="./scripts-js/profile-image-persistence.js" defer></script>

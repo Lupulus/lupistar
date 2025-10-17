@@ -17,7 +17,7 @@ document.addEventListener("DOMContentLoaded", function () {
         let scrollValue = manualScrollY / (maxScrollLimit * 2); // Normalisation sur 2000px max
         let blurValue = Math.min(scrollValue * 12, 15);
 
-        console.log(`📜 Scroll Calculé: ${manualScrollY}, Blur: ${blurValue}px`); // Vérifie les valeurs
+        //console.log(`📜 Scroll Calculé: ${manualScrollY}, Blur: ${blurValue}px`); // Vérifie les valeurs
 
         background.style.filter = `blur(${blurValue}px)`;
     }

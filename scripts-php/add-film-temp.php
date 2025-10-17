@@ -119,8 +119,31 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 // Insérer une nouvelle entrée pour un studio
                 $stmt = $pdo->prepare("INSERT INTO studios (nom, categorie) VALUES (?, ?)");
                 $stmt->execute([$nom, $categorie]);
+            } elseif ($table === "auteurs") {
+                // Vérifier si l'auteur existe déjà
+                $stmt = $pdo->prepare("SELECT id, categorie FROM auteurs WHERE nom = ?");
+                $stmt->execute([$nom]);
+        
+                if ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                    // Si l'auteur existe déjà, mettre à jour la catégorie si nécessaire
+                    $id = $row['id'];
+                    $categoriesExistantes = explode(',', $row['categorie'] ?? '');
+        
+                    if ($categorie && !in_array($categorie, $categoriesExistantes)) {
+                        $categoriesExistantes[] = $categorie;
+                        $nouvellesCategories = implode(',', $categoriesExistantes);
+        
+                        $stmt = $pdo->prepare("UPDATE auteurs SET categorie = ? WHERE id = ?");
+                        $stmt->execute([$nouvellesCategories, $id]);
+                    }
+                    return $id;
+                }
+        
+                // Insérer une nouvelle entrée pour un auteur
+                $stmt = $pdo->prepare("INSERT INTO auteurs (nom, categorie) VALUES (?, ?)");
+                $stmt->execute([$nom, $categorie]);
             } else {
-                // Vérifier si l'auteur ou le pays existe déjà
+                // Vérifier si le pays existe déjà
                 $stmt = $pdo->prepare("SELECT id FROM $table WHERE nom = ?");
                 $stmt->execute([$nom]);
         
@@ -128,7 +151,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     return $row['id'];
                 }
         
-                // Insérer une nouvelle entrée pour un auteur ou un pays
+                // Insérer une nouvelle entrée pour un pays
                 $stmt = $pdo->prepare("INSERT INTO $table (nom) VALUES (?)");
                 $stmt->execute([$nom]);
             }
@@ -146,14 +169,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 if (empty($input_value)) {
                     return getOrInsertId($pdo, $table, "Inconnu");
                 }
-                return getOrInsertId($pdo, $table, $input_value, ($table === "studios" ? $categorie : null));
+                return getOrInsertId($pdo, $table, $input_value, ($table === "studios" || $table === "auteurs" ? $categorie : null));
             }
         
             return (int) $select_value;
         }
 
         $studio_id = getDefaultOrInsert($pdo, "studios", $_POST['studio_id'] ?? '', $_POST['nouveau_studio'] ?? '', $_POST['categorie']);
-        $auteur_id = getDefaultOrInsert($pdo, "auteurs", $_POST['auteur_id'] ?? '', $_POST['nouveau_auteur'] ?? '');
+        $auteur_id = getDefaultOrInsert($pdo, "auteurs", $_POST['auteur_id'] ?? '', $_POST['nouveau_auteur'] ?? '', $_POST['categorie']);
         $pays_id = getDefaultOrInsert($pdo, "pays", $_POST['pays_id'] ?? '', $_POST['nouveau_pays'] ?? '');
 
         // Gestion de l'image - stockage dans img-temp

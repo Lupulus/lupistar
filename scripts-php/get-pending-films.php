@@ -70,7 +70,7 @@ try {
               LEFT JOIN auteurs a ON ft.auteur_id = a.id
               LEFT JOIN pays p ON ft.pays_id = p.id
               WHERE ft.statut = 'en_attente'
-              ORDER BY ft.date_proposition DESC";
+              ORDER BY ft.date_proposition ASC";
 
     $result = $pdo->query($query);
     

@@ -22,19 +22,22 @@ function updateStudios() {
     const categorie = document.getElementById('categorie').value;
     const studioSelect = document.getElementById('studio');
     
-    // Vider les options actuelles et ajouter "Sélectionnez un studio" et "Autre" en deuxième position
-    studioSelect.innerHTML = '<option value="">Sélectionnez un studio</option><option value="autre">Autre</option>';
+    // Vider les options actuelles et ajouter "Sélectionnez un studio", "Autre" et "Inconnu"
+    studioSelect.innerHTML = '<option value="">Sélectionnez un studio</option><option value="autre">Autre</option><option value="1">Inconnu</option>';
     
     if (categorie) {
         fetch('./scripts-php/get-studios.php?categorie=' + encodeURIComponent(categorie))
             .then(response => response.json())
             .then(data => {
                 data.forEach(studio => {
-                    const option = document.createElement('option');
-                    option.value = studio.id;
-                    option.textContent = studio.nom;
-                    // Ajouter les studios après l'option "Autre"
-                    studioSelect.appendChild(option);
+                    // Éviter de dupliquer "Inconnu" qui est déjà ajouté manuellement
+                    if (studio.nom !== 'Inconnu') {
+                        const option = document.createElement('option');
+                        option.value = studio.id;
+                        option.textContent = studio.nom;
+                        // Ajouter les studios après l'option "Inconnu"
+                        studioSelect.appendChild(option);
+                    }
                 });
             })
             .catch(error => {

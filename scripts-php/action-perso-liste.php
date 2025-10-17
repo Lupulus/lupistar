@@ -44,6 +44,11 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['film_id']) && isset($
             include 'recalculate-average-note.php';
             $nouvelle_note_moyenne = recalculateFilmAverageNote($pdo, $film_id);
             
+            // Vérifier les récompenses après modification de la liste personnelle
+            include_once 'controller-recompense.php';
+            $rewardController = new RewardController($pdo);
+            $rewardController->verifierEtAttribuerRecompenses($user_id);
+            
             if ($action === 'add') {
                 echo json_encode([
                     'success' => true, 

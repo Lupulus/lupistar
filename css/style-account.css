@@ -213,6 +213,46 @@ body {
     color: var(--text-white);
 }
 
+/* Styles pour l'interface de promotion */
+.title-section {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+.btn-promotion {
+    background: var(--accent-orange);
+    color: var(--text-white);
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: background-color 0.3s ease;
+    white-space: nowrap;
+}
+
+.btn-promotion:hover {
+    background: var(--accent-orange-hover);
+}
+
+.promotion-status {
+    color: var(--accent-orange);
+    font-size: 0.9rem;
+    font-weight: 500;
+    padding: 8px 12px;
+    background: rgba(255, 165, 0, 0.1);
+    border-radius: 6px;
+    border: 1px solid var(--accent-orange);
+}
+
+.promotion-info {
+    color: var(--text-light-gray);
+    font-size: 0.85rem;
+    font-style: italic;
+}
+
 /* Section statistiques - Colonne 3 */
 .stats-section {
     background: var(--secondary-dark);

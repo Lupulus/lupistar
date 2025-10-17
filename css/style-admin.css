@@ -15,6 +15,182 @@
     --shadow-darker: rgba(0, 0, 0, 0.6);
 /* Notification Japon */
 }
+
+/* Styles pour les actions de promotion */
+.promotion-actions {
+    display: flex;
+    gap: 5px;
+    margin-top: 5px;
+}
+
+.promotion-actions .btn-approve,
+.promotion-actions .btn-reject {
+    padding: 4px 8px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9em;
+    font-weight: bold;
+    transition: all 0.3s ease;
+}
+
+.promotion-actions .btn-approve {
+    background: #28a745;
+    color: white;
+}
+
+.promotion-actions .btn-approve:hover {
+    background: #218838;
+}
+
+.promotion-actions .btn-reject {
+    background: #dc3545;
+    color: white;
+}
+
+.promotion-actions .btn-reject:hover {
+    background: #c82333;
+}
+
+/* Nouveau design pour la promotion dans la colonne titre */
+.titre-cell {
+    position: relative;
+    min-width: 200px;
+}
+
+.promotion-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 8px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    border: 2px solid rgba(255, 140, 0, 0.3);
+    min-height: 80px;
+}
+
+.promotion-btn-left,
+.promotion-btn-right {
+    width: 35px;
+    height: 35px;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 1.2em;
+    font-weight: bold;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.promotion-btn-left {
+    background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+    color: white;
+}
+
+.promotion-btn-left:hover {
+    background: linear-gradient(135deg, #c82333 0%, #a71e2a 100%);
+    transform: scale(1.1);
+    box-shadow: 0 4px 12px rgba(220, 53, 69, 0.4);
+}
+
+.promotion-btn-right {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    color: white;
+}
+
+.promotion-btn-right:hover {
+    background: linear-gradient(135deg, #20c997 0%, #17a2b8 100%);
+    transform: scale(1.1);
+    box-shadow: 0 4px 12px rgba(40, 167, 69, 0.4);
+}
+
+.promotion-titles {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+}
+
+.current-title,
+.next-title {
+    display: flex;
+    justify-content: center;
+}
+
+.promotion-arrow {
+    font-size: 1.5em;
+    color: var(--accent-orange);
+    font-weight: bold;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    animation: bounce 2s infinite;
+    position: relative;
+}
+
+.promotion-arrow-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+    width: 100%;
+    position: relative;
+}
+
+.promotion-arrow-container .promotion-btn-left {
+    position: absolute;
+    left: 0;
+}
+
+.promotion-arrow-container .promotion-btn-right {
+    position: absolute;
+    right: 0;
+}
+
+@keyframes bounce {
+    0%, 20%, 50%, 80%, 100% {
+        transform: translateY(0);
+    }
+    40% {
+        transform: translateY(-5px);
+    }
+    60% {
+        transform: translateY(-3px);
+    }
+}
+
+/* Responsive pour mobile */
+@media (max-width: 768px) {
+    .promotion-container {
+        flex-direction: column;
+        gap: 8px;
+        padding: 10px;
+        min-height: auto;
+    }
+    
+    .promotion-titles {
+        order: 1;
+    }
+    
+    .promotion-btn-left {
+        order: 3;
+    }
+    
+    .promotion-btn-right {
+        order: 2;
+    }
+    
+    .promotion-btn-left,
+    .promotion-btn-right {
+        width: 40px;
+        height: 40px;
+        font-size: 1.3em;
+    }
+}
 .japan-notification {
     margin-top: 8px;
     padding: 10px 12px;
@@ -1010,6 +1186,34 @@ h2 {
     flex: 1;
 }
 
+/* Badge de notification pour les demandes de promotion */
+.promotion-badge {
+    display: inline-block;
+    margin-left: 8px;
+    padding: 2px 6px;
+    background: var(--accent-orange);
+    color: var(--text-white);
+    border-radius: 50%;
+    font-size: 0.8em;
+    animation: pulse 2s infinite;
+    cursor: help;
+}
+
+@keyframes pulse {
+    0% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.7;
+        transform: scale(1.1);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
 .membre-titre {
     padding: 0.5rem 1rem;
     border-radius: 20px;
@@ -1160,16 +1364,42 @@ h2 {
 }
 
 .pending-films-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, 210px);
+    display: flex;
+    flex-direction: row;
     gap: 1.5rem;
     margin: 1rem 0;
+    padding: 0.5rem;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding-bottom: 0.5rem;
+    scrollbar-width: thin;
+    scrollbar-color: var(--accent-orange) var(--secondary-dark);
+}
+
+.pending-films-grid::-webkit-scrollbar {
+    height: 8px;
+}
+
+.pending-films-grid::-webkit-scrollbar-track {
+    background: var(--secondary-dark);
+    border-radius: 4px;
+}
+
+.pending-films-grid::-webkit-scrollbar-thumb {
+    background: var(--accent-orange);
+    border-radius: 4px;
+}
+
+.pending-films-grid::-webkit-scrollbar-thumb:hover {
+    background: var(--accent-orange-hover);
 }
 
 .pending-film-card {
     background: linear-gradient(135deg, var(--secondary-dark) 0%, var(--tertiary-dark) 100%);
     border-radius: 12px;
     height: 478px; /* hauteur fixe pour toute la carte */
+    width: 210px; /* largeur fixe pour maintenir la taille */
+    flex-shrink: 0; /* empêche la carte de se rétrécir */
     border: 2px solid var(--light-gray);
     box-shadow: 0 4px 15px var(--shadow-dark);
     overflow: hidden;
@@ -1352,6 +1582,37 @@ h2 {
     border-radius: 8px;
     border: 2px solid var(--light-gray);
     box-shadow: 0 4px 15px var(--shadow-dark);
+}
+
+.image-upload-section {
+    margin-top: 1rem;
+    padding: 1rem;
+    background: var(--primary-dark);
+    border-radius: 8px;
+    border: 1px solid var(--light-gray);
+}
+
+.image-upload-section label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: bold;
+    color: var(--text-light);
+}
+
+.image-upload-section input[type="file"] {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid var(--light-gray);
+    border-radius: 4px;
+    background: var(--background-dark);
+    color: var(--text-light);
+}
+
+.image-upload-section small {
+    display: block;
+    margin-top: 0.5rem;
+    color: var(--text-muted);
+    font-size: 0.85rem;
 }
 
 .admin-actions-section {

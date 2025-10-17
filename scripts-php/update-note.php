@@ -51,6 +51,11 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST["film_id"], $_POST["no
         $stmt_update_moyenne = $pdo->prepare($sql_update_moyenne);
         $stmt_update_moyenne->execute([$note_moyenne, $film_id]);
 
+        // Vérifier les récompenses après notation d'un film
+        include_once 'controller-recompense.php';
+        $rewardController = new RewardController($pdo);
+        $rewardController->verifierEtAttribuerRecompenses($user_id);
+
         echo json_encode([
             "success" => true, 
             "nouvelle_note_moyenne" => floatval($note_moyenne)

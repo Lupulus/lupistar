@@ -26,6 +26,64 @@ if (!$isLoggedIn || $user_level <= 1) {
     header("Location: ./login.php");
     exit;
 }
+// Fonction pour récupérer les auteurs en fonction de la catégorie
+function getAuteursParCategorie($pdo, $categorie) {
+    try {
+        $auteurs = [];
+        $searchPattern = "%".$categorie."%";
+
+        // Récupérer les auteurs triés par réputation (nombre de films associés) puis par nom
+        $stmt = $pdo->prepare("
+            SELECT a.id, a.nom, COUNT(f.id) as reputation
+            FROM auteurs a
+            LEFT JOIN films f ON a.id = f.auteur_id AND f.categorie = ?
+            WHERE a.categorie LIKE ?
+            GROUP BY a.id, a.nom
+            ORDER BY reputation DESC, a.nom ASC
+        ");
+        $stmt->execute([$categorie, $searchPattern]);
+
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $auteurs[$row['id']] = $row['nom'];
+        }
+
+        return $auteurs;
+    } catch (PDOException $e) {
+        error_log("Erreur lors de la récupération des auteurs par catégorie: " . $e->getMessage());
+        return [];
+    }
+}
+
+// Fonction pour ajouter un auteur si "Autre" est sélectionné
+function ajouterOuMettreAJourAuteur($pdo, $nom_auteur, $categorie) {
+    try {
+        $stmt = $pdo->prepare("SELECT id, categorie FROM auteurs WHERE nom = ?");
+        $stmt->execute([$nom_auteur]);
+
+        if ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            // Auteur existe déjà : mettre à jour la catégorie si nécessaire
+            $id = $row['id'];
+            $categoriesExistantes = explode(',', $row['categorie']);
+
+            if (!in_array($categorie, $categoriesExistantes)) {
+                $categoriesExistantes[] = $categorie;
+                $nouvellesCategories = implode(',', $categoriesExistantes);
+
+                $stmt = $pdo->prepare("UPDATE auteurs SET categorie = ? WHERE id = ?");
+                $stmt->execute([$nouvellesCategories, $id]);
+            }
+            return $id;
+        } else {
+            // Auteur inexistant : insertion
+            $stmt = $pdo->prepare("INSERT INTO auteurs (nom, categorie) VALUES (?, ?)");
+            $stmt->execute([$nom_auteur, $categorie]);
+            return $pdo->lastInsertId();
+        }
+    } catch (PDOException $e) {
+        error_log("Erreur lors de l'ajout/mise à jour de l'auteur: " . $e->getMessage());
+        return false;
+    }
+}
 
 // Définir la page actuelle pour marquer l'onglet actif
 $current_page = basename($_SERVER['PHP_SELF'], ".php");
@@ -70,8 +128,16 @@ function getStudiosParCategorie($pdo, $categorie) {
         $studios = [];
         $searchPattern = "%".$categorie."%";
 
-        $stmt = $pdo->prepare("SELECT id, nom FROM studios WHERE categorie LIKE ? ORDER BY nom ASC");
-        $stmt->execute([$searchPattern]);
+        // Récupérer les studios triés par réputation (nombre de films associés) puis par nom
+        $stmt = $pdo->prepare("
+            SELECT s.id, s.nom, COUNT(f.id) as reputation
+            FROM studios s
+            LEFT JOIN films f ON s.id = f.studio_id AND f.categorie = ?
+            WHERE s.categorie LIKE ?
+            GROUP BY s.id, s.nom
+            ORDER BY reputation DESC, s.nom ASC
+        ");
+        $stmt->execute([$categorie, $searchPattern]);
 
         while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
             $studios[$row['id']] = $row['nom'];
@@ -82,6 +148,30 @@ function getStudiosParCategorie($pdo, $categorie) {
         error_log("Erreur lors de la récupération des studios par catégorie: " . $e->getMessage());
         return [];
     }
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    header('Content-Type: application/json');
+
+    // Traitement AJAX pour récupérer les studios selon la catégorie
+    if (isset($_POST['categorie'])) {
+        $categorie = $_POST['categorie'];
+        $studios = getStudiosParCategorie($pdo, $categorie);
+        echo json_encode(["success" => true, "studios" => $studios]);
+        exit;
+    }
+
+    // Traitement AJAX pour récupérer les auteurs selon la catégorie
+    if (isset($_POST['categorie_auteurs'])) {
+        $categorie = $_POST['categorie_auteurs'];
+        $auteurs = getAuteursParCategorie($pdo, $categorie);
+        echo json_encode(["success" => true, "auteurs" => $auteurs]);
+        exit;
+    }
+
+    // Si on arrive ici, c'est une requête AJAX invalide
+    echo json_encode(["error" => "Requête invalide."]);
+    exit;
 }
 ?>
 
@@ -346,8 +436,60 @@ function getStudiosParCategorie($pdo, $categorie) {
         }
     }
 
+    // Fonction pour mettre à jour les studios selon la catégorie
+    function updateStudios() {
+        // Cette fonction est maintenant gérée par script-proposer.js
+        // Garder cette fonction vide pour éviter les conflits
+    }
+
+    // Fonction pour mettre à jour les auteurs selon la catégorie
+    function updateAuteurs() {
+        let categorie = document.getElementById("categorie").value;
+        let auteurSelect = document.getElementById("auteur");
+
+        // Réinitialiser le select avec l'option de base et "Autre" en deuxième position
+        auteurSelect.innerHTML = "<option value=''>Sélectionnez un auteur</option><option value='autre'>Autre</option>";
+        
+        // Ajouter l'option "Inconnu" toujours présente
+        let optionInconnu = document.createElement("option");
+        optionInconnu.value = "1";
+        optionInconnu.textContent = "Inconnu";
+        auteurSelect.appendChild(optionInconnu);
+
+        if (!categorie) return;
+
+        fetch("./proposer-film.php", {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: "categorie_auteurs=" + encodeURIComponent(categorie)
+        })
+        .then(response => response.text())
+        .then(text => {
+            console.log("Réponse brute du serveur (auteurs) :", text);
+            return JSON.parse(text);
+        })
+        .then(data => {
+            if (data.success) {
+                Object.entries(data.auteurs).forEach(([id, nom]) => { 
+                    // Éviter de dupliquer "Inconnu" qui est déjà ajouté manuellement
+                    if (nom !== "Inconnu") {
+                        let option = document.createElement("option");
+                        option.value = id;
+                        option.textContent = nom;
+                        auteurSelect.appendChild(option);
+                    }
+                });
+                }
+        })
+        .catch(error => console.error("Erreur AJAX (auteurs) :", error));
+    }
+
     // Ajouter l'événement pour le changement de catégorie
-    document.getElementById('categorie').addEventListener('change', handleCategoryChange);
+    document.getElementById('categorie').addEventListener('change', function() {
+        handleCategoryChange();
+        updateStudios();
+        updateAuteurs();
+    });
 </script>
             
             <div id="notification"></div>

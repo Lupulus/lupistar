@@ -62,6 +62,11 @@ try {
         include 'recalculate-average-note.php';
         $nouvelle_note_moyenne = recalculateFilmAverageNote($pdo, $film_id);
         
+        // Vérifier les récompenses après suppression d'un film de la liste
+        include_once 'controller-recompense.php';
+        $rewardController = new RewardController($pdo);
+        $rewardController->verifierEtAttribuerRecompenses($user_id);
+        
         echo json_encode([
             'success' => true,
             'message' => 'Le film a été retiré de votre liste avec succès.',

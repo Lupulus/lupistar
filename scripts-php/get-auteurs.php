@@ -19,28 +19,28 @@ try {
         exit;
     }
 
-    // Préparer la requête pour récupérer les studios selon la catégorie avec tri par réputation
-    // La réputation est calculée par le nombre de films de cette catégorie associés au studio
+    // Préparer la requête pour récupérer les auteurs selon la catégorie avec tri par réputation
+    // La réputation est calculée par le nombre de films de cette catégorie associés à l'auteur
     $stmt = $pdo->prepare("
-        SELECT s.id, s.nom, COUNT(f.id) as reputation
-        FROM studios s
-        LEFT JOIN films f ON s.id = f.studio_id AND f.categorie = ?
-        WHERE FIND_IN_SET(?, s.categorie) > 0
-        GROUP BY s.id, s.nom
-        ORDER BY reputation DESC, s.nom DESC
+        SELECT a.id, a.nom, COUNT(f.id) as reputation
+        FROM auteurs a
+        LEFT JOIN films f ON a.id = f.auteur_id AND f.categorie = ?
+        WHERE FIND_IN_SET(?, a.categorie) > 0
+        GROUP BY a.id, a.nom
+        ORDER BY reputation DESC, a.nom DESC
     ");
     $stmt->execute([$categorie, $categorie]);
 
-    $studios = [];
+    $auteurs = [];
     while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-        $studios[] = [
+        $auteurs[] = [
             'id' => $row['id'],
             'nom' => $row['nom'],
             'reputation' => $row['reputation']
         ];
     }
 
-    echo json_encode($studios);
+    echo json_encode($auteurs);
 } catch (PDOException $e) {
     echo json_encode(["error" => "Erreur de base de données: " . $e->getMessage()]);
 } catch (Exception $e) {

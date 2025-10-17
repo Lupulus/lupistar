@@ -49,11 +49,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
                         // Préparer et exécuter la requête SQL pour insérer les données dans la table
                         if (!empty($email)) {
-                            $sql = "INSERT INTO membres (username, password, email, titre, politique_acceptee) VALUES (?, ?, ?, ?, ?)";
+                            $sql = "INSERT INTO membres (username, password, email, titre, politique_acceptee, date_creation) VALUES (?, ?, ?, ?, ?, NOW())";
                             $stmt = $pdo->prepare($sql);
                             $stmt->execute([$username, $hashed_password, $email, $titre, $politique_acceptee]);
                         } else {
-                            $sql = "INSERT INTO membres (username, password, titre, politique_acceptee) VALUES (?, ?, ?, ?)";
+                            $sql = "INSERT INTO membres (username, password, titre, politique_acceptee, date_creation) VALUES (?, ?, ?, ?, NOW())";
                             $stmt = $pdo->prepare($sql);
                             $stmt->execute([$username, $hashed_password, $titre, $politique_acceptee]);
                         }

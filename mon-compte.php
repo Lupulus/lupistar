@@ -1,4 +1,8 @@
 <?php
+// Activer l'affichage des erreurs pour le débogage
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
 session_start();
 include './scripts-php/co-bdd.php';
 
@@ -12,10 +16,21 @@ if (!$isLoggedIn) {
 
 // Récupérer les informations de l'utilisateur
 $user_id = $_SESSION['user_id'];
-$sql = "SELECT * FROM membres WHERE id = ?";
-$stmt = $pdo->prepare($sql);
-$stmt->execute([$user_id]);
-$user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+try {
+    $sql = "SELECT * FROM membres WHERE id = ?";
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute([$user_id]);
+    $user = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+    // Vérifier si l'utilisateur a été trouvé
+    if (!$user) {
+        die("Erreur: Utilisateur non trouvé dans la base de données (ID: " . $user_id . ")");
+    }
+    
+} catch (Exception $e) {
+    die("Erreur lors de la récupération des données utilisateur: " . $e->getMessage());
+}
 
 // Traitement des formulaires
 $message = '';
@@ -267,7 +282,37 @@ $current_page = basename($_SERVER['PHP_SELF'], ".php");
             
             <div class="info-group">
                 <label>Titre</label>
-                <input type="text" value="<?php echo htmlspecialchars($user['titre']); ?>" disabled>
+                <div class="title-section">
+                    <input type="text" value="<?php echo htmlspecialchars($user['titre']); ?>" disabled>
+                    <?php
+                    try {
+                        // Vérifier si l'utilisateur peut demander une promotion
+                        include_once './scripts-php/controller-recompense.php';
+                        $rewardController = new RecompenseController($pdo);
+                        $canRequestPromotion = $rewardController->peutDemanderPromotion($user_id);
+                        
+                        if ($canRequestPromotion) {
+                            // Vérifier s'il y a déjà une demande en cours
+                            $sql_check_request = "SELECT demande_promotion FROM membres WHERE id = ?";
+                            $stmt_check = $pdo->prepare($sql_check_request);
+                            $stmt_check->execute([$user_id]);
+                            $current_request = $stmt_check->fetch(PDO::FETCH_ASSOC);
+                            
+                            if ($current_request && $current_request['demande_promotion'] == 1) {
+                                echo '<span class="promotion-status">Demande de promotion en cours...</span>';
+                            } else {
+                                echo '<button type="button" class="btn-promotion" onclick="demanderPromotion()">Demander une promotion</button>';
+                            }
+                        } else {
+                            echo '<span class="promotion-info">3 récompenses nécessaires pour une promotion</span>';
+                        }
+                    } catch (Exception $e) {
+                        // Afficher l'erreur pour le débogage
+                        echo '<div style="color: red; font-size: 12px; margin-top: 5px;">Erreur système de promotion: ' . htmlspecialchars($e->getMessage()) . '</div>';
+                        error_log("Erreur dans mon-compte.php ligne 273: " . $e->getMessage());
+                    }
+                    ?>
+                </div>
             </div>
             
             <!-- Modification de l'email -->
@@ -352,7 +397,7 @@ $current_page = basename($_SERVER['PHP_SELF'], ".php");
                 </div>
                 
                 <div class="stat-card">
-                    <span class="stat-number"><?php echo $avg_rating ? number_format($avg_rating['avg_rating'], 1) : '0'; ?>/10</span>
+                    <span class="stat-number"><?php echo ($avg_rating && $avg_rating['avg_rating'] !== null) ? number_format($avg_rating['avg_rating'], 1) : '0.0'; ?>/10</span>
                     <span class="stat-label">Note moyenne</span>
                 </div>
                 
@@ -674,6 +719,86 @@ $current_page = basename($_SERVER['PHP_SELF'], ".php");
                 // Utiliser la popup personnalisée au lieu d'alert()
                 customAlert('Erreur lors de la suppression de la notification', 'Erreur');
             });
+        }
+        
+        // Fonction pour demander une promotion
+        async function demanderPromotion() {
+            console.log('demanderPromotion() appelée');
+            
+            const confirmed = await customConfirm('Êtes-vous sûr de vouloir demander une promotion ? Cette action consommera 3 récompenses.', 'Confirmation');
+            
+            if (confirmed) {
+                console.log('Confirmation reçue, envoi de la requête...');
+                
+                // Désactiver le bouton pendant la requête
+                const promotionBtn = document.querySelector('button[onclick="demanderPromotion()"]');
+                if (promotionBtn) {
+                    promotionBtn.disabled = true;
+                    promotionBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Demande en cours...';
+                    promotionBtn.style.opacity = '0.6';
+                }
+                
+                try {
+                    const response = await fetch('./scripts-php/demander-promotion.php', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                        }
+                    });
+                    
+                    console.log('Réponse reçue:', response.status, response.statusText);
+                    console.log('Headers de réponse:', response.headers);
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    
+                    const text = await response.text();
+                    console.log('Texte de réponse brut:', text);
+                    
+                    let data;
+                    try {
+                        data = JSON.parse(text);
+                    } catch (e) {
+                        console.error('Erreur de parsing JSON:', e);
+                        console.error('Texte reçu:', text);
+                        throw new Error('Réponse non-JSON reçue: ' + text);
+                    }
+                    
+                    console.log('Données parsées:', data);
+                    
+                    // Réactiver le bouton
+                    if (promotionBtn) {
+                        promotionBtn.disabled = false;
+                        promotionBtn.innerHTML = '<i class="fas fa-star"></i> Demander une promotion';
+                        promotionBtn.style.opacity = '1';
+                    }
+                    
+                    if (data.success) {
+                        console.log('Succès:', data.message);
+                        customAlert(data.message, 'Succès');
+                        // Recharger la page pour mettre à jour l'interface
+                        setTimeout(() => {
+                            location.reload();
+                        }, 2000);
+                    } else {
+                        console.log('Erreur:', data.message);
+                        customAlert(data.message, 'Erreur');
+                    }
+                } catch (error) {
+                    console.error('Erreur complète:', error);
+                    console.error('Stack trace:', error.stack);
+                    
+                    // Réactiver le bouton en cas d'erreur
+                    if (promotionBtn) {
+                        promotionBtn.disabled = false;
+                        promotionBtn.innerHTML = '<i class="fas fa-star"></i> Demander une promotion';
+                        promotionBtn.style.opacity = '1';
+                    }
+                    
+                    customAlert('Erreur lors de la demande de promotion: ' + error.message, 'Erreur');
+                }
+            }
         }
         
         // Fonction pour afficher les notifications inline des catégories
