@@ -126,17 +126,11 @@ Des scripts automatisés permettent :
 
 Exécutés via cron jobs.
 
-## 📋 9. Gestion de projet
-
-- Méthodologie inspirée Agile
-- User stories
-- Suivi via Kanban (Trello / Notion)
-
-## 👤 10. Auteur
+## 👤 9. Auteur
 
 Projet réalisé par VOLLE Clément
 
-## 🔥 11. Le fichier .env.example
+## 🔥 10. Le fichier .env.example
 
 Exemple :
 
