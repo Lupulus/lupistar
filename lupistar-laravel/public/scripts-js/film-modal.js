@@ -307,6 +307,8 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     };
 
+    window.openFilmModalForFilmId = openModalForFilmId;
+
     modal.addEventListener('click', function (event) {
         if (!modalContent.contains(event.target)) {
             closeModal();

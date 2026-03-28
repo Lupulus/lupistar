@@ -170,7 +170,7 @@
                             <h3 class="notification-title">${escapeHtml(n.titre || 'Notification')}</h3>
                             <div class="notification-date">${new Date(n.date_creation).toLocaleString()}</div>
                         </div>
-                        <div class="notification-message">${escapeHtml(n.message || '')}</div>
+                        <div class="notification-message">${renderNotificationMessage(n.message || '')}</div>
                         <div class="notification-actions">
                             <button class="btn-secondary" data-action="read" data-id="${n.id}">Marquer comme lue</button>
                             <button class="btn-delete-notification" data-action="delete" data-id="${n.id}">Supprimer</button>
@@ -201,6 +201,11 @@
 
         function escapeHtml(s) {
             return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+        }
+
+        function renderNotificationMessage(message) {
+            const escaped = escapeHtml(message);
+            return escaped.replace(/(https?:\/\/[^\s<]+)/g, (url) => `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`);
         }
 
         async function loadCategoriesPreferences() {

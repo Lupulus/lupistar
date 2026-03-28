@@ -13,88 +13,66 @@ class ForumCategoriesTableSeeder extends Seeder
      */
     public function run()
     {
-
         \DB::table('forum_categories')->delete();
 
+        $now = now();
+
         \DB::table('forum_categories')->insert([
-            0 => [
+            [
                 'id' => 1,
-                'nom' => 'Global',
-                'description' => 'Discussions générales sur tous les sujets',
+                'nom' => 'Discussions Générales',
+                'description' => 'Cinéma, séries, nouveautés…',
                 'couleur' => '#ff8c00',
-                'icone' => 'fas fa-globe',
+                'icone' => 'fas fa-comments',
                 'ordre' => 1,
                 'admin_only' => 0,
                 'active' => 1,
-                'created_at' => '2025-10-06 10:39:10',
+                'created_at' => $now,
             ],
-            1 => [
+            [
                 'id' => 2,
-                'nom' => 'Film',
-                'description' => 'Discussions sur les films',
-                'couleur' => '#e74c3c',
-                'icone' => 'fas fa-film',
+                'nom' => 'Critique et avis',
+                'description' => 'Reviews, critiques, notes et avis des membres.',
+                'couleur' => '#3498db',
+                'icone' => 'fas fa-star',
                 'ordre' => 2,
                 'admin_only' => 0,
                 'active' => 1,
-                'created_at' => '2025-10-06 10:39:10',
+                'created_at' => $now,
             ],
-            2 => [
+            [
                 'id' => 3,
-                'nom' => 'Animation',
-                'description' => 'Discussions sur les films d\'animation',
-                'couleur' => '#3498db',
-                'icone' => 'fas fa-magic',
+                'nom' => 'Suggestion & Reco...',
+                'description' => 'Films à découvrir, recommandations d’autres utilisateurs.',
+                'couleur' => '#2ecc71',
+                'icone' => 'fas fa-lightbulb',
                 'ordre' => 3,
                 'admin_only' => 0,
                 'active' => 1,
-                'created_at' => '2025-10-06 10:39:10',
+                'created_at' => $now,
             ],
-            3 => [
+            [
                 'id' => 4,
-                'nom' => 'Anime',
-                'description' => 'Discussions sur les animés',
-                'couleur' => '#9b59b6',
-                'icone' => 'fas fa-star',
+                'nom' => 'Support / Questions',
+                'description' => 'Bugs du site, questions techniques.',
+                'couleur' => '#e74c3c',
+                'icone' => 'fas fa-life-ring',
                 'ordre' => 4,
                 'admin_only' => 0,
                 'active' => 1,
-                'created_at' => '2025-10-06 10:39:10',
+                'created_at' => $now,
             ],
-            4 => [
+            [
                 'id' => 5,
-                'nom' => 'Série',
-                'description' => 'Discussions sur les séries',
-                'couleur' => '#2ecc71',
-                'icone' => 'fas fa-tv',
-                'ordre' => 5,
-                'admin_only' => 0,
-                'active' => 1,
-                'created_at' => '2025-10-06 10:39:10',
-            ],
-            5 => [
-                'id' => 6,
-                'nom' => 'Série d\'Animation',
-                'description' => 'Discussions sur les séries d\'animation',
-                'couleur' => '#f39c12',
-                'icone' => 'fas fa-play-circle',
-                'ordre' => 6,
-                'admin_only' => 0,
-                'active' => 1,
-                'created_at' => '2025-10-06 10:39:10',
-            ],
-            6 => [
-                'id' => 7,
                 'nom' => 'Admin',
                 'description' => 'Section administrative (réservée aux administrateurs)',
                 'couleur' => '#34495e',
                 'icone' => 'fas fa-shield-alt',
-                'ordre' => 7,
+                'ordre' => 99,
                 'admin_only' => 1,
                 'active' => 1,
-                'created_at' => '2025-10-06 10:39:10',
+                'created_at' => $now,
             ],
         ]);
-
     }
 }

@@ -1,32 +1,388 @@
 @extends('layouts.site')
 
+@section('styles')
+    <link rel="stylesheet" href="{{ asset('css/style-forum.css') }}">
+@endsection
+
 @section('content')
-    <div style="padding:20px;max-width:920px;margin:0 auto;">
-        <h2>{{ $discussion->titre }}</h2>
-        <p>{{ $discussion->description }}</p>
-        <hr>
-        <h3>Commentaires</h3>
-        <ul>
+    @php
+        $isLoggedIn = (bool) session('user_id');
+        $currentUserId = is_numeric(session('user_id')) ? (int) session('user_id') : null;
+        $currentTitre = (string) session('titre', 'Membre');
+        $isAdmin = in_array($currentTitre, ['Admin', 'Super-Admin'], true);
+        $canManageDiscussion = $currentUserId && ($isAdmin || $currentUserId === (int) $discussion->author_id);
+    @endphp
+
+    <div class="forum-page">
+        <div class="forum-breadcrumbs">
+            <a href="{{ route('forum') }}">Forum</a>
+            <span>/</span>
+            <a href="{{ route('forum.category', ['id' => $discussion->category->route_id ?? $discussion->category->id ?? '' ]) }}">{{ $discussion->category->nom }}</a>
+            <span>/</span>
+            <span>{{ $discussion->titre }}</span>
+        </div>
+
+        <div class="forum-header">
+            <div class="forum-title">
+                <h1>{{ $discussion->titre }}</h1>
+                <p>👤 {{ $discussion->author?->username ?? '—' }} · 🕒 {{ \Carbon\Carbon::parse($discussion->created_at)->locale('fr')->diffForHumans() }} · 👁️ {{ (int) ($discussion->views ?? 0) }}</p>
+            </div>
+            @if($canManageDiscussion)
+                <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:10px;">
+                    <button class="forum-button secondary" type="button" id="editDiscussionBtn">Modifier</button>
+                    <form action="{{ route('forum.discussion.delete', ['id' => $discussion->id]) }}" method="post" style="margin:0;">
+                        @csrf
+                        <button class="forum-button" type="submit" onclick="return confirm('Supprimer ce topic ?')">Supprimer</button>
+                    </form>
+                </div>
+            @endif
+        </div>
+
+        <div class="forum-card">
+            <div class="forum-content">{!! $discussion->description_html !!}</div>
+        </div>
+
+        @if($canManageDiscussion)
+            <div class="forum-card" id="editDiscussionCard" style="display:none;">
+                <h2 style="margin: 0 0 8px; color: var(--text-white);">Modifier le topic</h2>
+                <form action="{{ route('forum.discussion.update', ['id' => $discussion->id]) }}" method="post">
+                    @csrf
+                    <input class="forum-editor-title" name="titre" type="text" required maxlength="120" value="{{ old('titre', $discussion->titre) }}">
+                    <div class="forum-editor-toolbar">
+                        <button class="forum-editor-btn" type="button" data-target="editDiscussionDescription" data-cmd="bold">Gras</button>
+                        <button class="forum-editor-btn" type="button" data-target="editDiscussionDescription" data-cmd="underline">Souligné</button>
+                        <button class="forum-editor-btn" type="button" data-target="editDiscussionDescription" data-cmd="strike">Barré</button>
+                        <button class="forum-editor-btn" type="button" data-target="editDiscussionDescription" data-cmd="color" data-color="#ff8c00">Orange</button>
+                        <button class="forum-editor-btn" type="button" data-target="editDiscussionDescription" data-cmd="color" data-color="#3498db">Bleu</button>
+                        <button class="forum-editor-btn" type="button" data-target="editDiscussionDescription" data-cmd="color" data-color="#2ecc71">Vert</button>
+                        <button class="forum-editor-btn" type="button" data-target="editDiscussionDescription" data-cmd="emoji" data-emoji="😀">😀</button>
+                        <button class="forum-editor-btn" type="button" data-target="editDiscussionDescription" data-cmd="emoji" data-emoji="🔥">🔥</button>
+                        <button class="forum-editor-btn" type="button" data-target="editDiscussionDescription" data-cmd="emoji" data-emoji="🎬">🎬</button>
+                        <button class="forum-editor-btn" type="button" data-target="editDiscussionDescription" data-cmd="img">Image</button>
+                        <button class="forum-editor-btn" type="button" data-target="editDiscussionDescription" data-cmd="film">Ajouter un film</button>
+                    </div>
+                    <textarea class="forum-editor-textarea" id="editDiscussionDescription" name="description" rows="8" required>{{ old('description', $discussion->description) }}</textarea>
+                    <div style="display:flex;justify-content:flex-end;margin-top:10px;gap:10px;">
+                        <button class="forum-button secondary" type="button" id="cancelEditDiscussionBtn">Annuler</button>
+                        <button class="forum-button" type="submit">Enregistrer</button>
+                    </div>
+                </form>
+            </div>
+        @endif
+
+        <div class="forum-comments">
             @forelse($comments as $c)
-                <li>
-                    <div>{{ $c->content }}</div>
-                </li>
+                @php
+                    $avatar = $c->author?->photo_profil ? asset($c->author->photo_profil) : asset('img/img-profile/profil.png');
+                    $canManageComment = $currentUserId && ($isAdmin || $currentUserId === (int) $c->author_id);
+                @endphp
+                <div class="forum-comment" id="comment-{{ $c->id }}" data-comment-id="{{ $c->id }}">
+                    <img class="forum-avatar" src="{{ $avatar }}" alt="Avatar">
+                    <div>
+                        <div class="forum-comment-head">
+                            <div class="forum-comment-user">{{ $c->author?->username ?? '—' }}</div>
+                            <div class="forum-comment-date">{{ \Carbon\Carbon::parse($c->created_at)->locale('fr')->diffForHumans() }}</div>
+                        </div>
+                        <div class="forum-content" id="comment-view-{{ $c->id }}">{!! $c->content_html !!}</div>
+                        @if($canManageComment)
+                            <form action="{{ route('forum.comment.update', ['id' => $c->id]) }}" method="post" id="comment-edit-form-{{ $c->id }}" style="display:none;margin-top:10px;">
+                                @csrf
+                                <div class="forum-editor-toolbar">
+                                    <button class="forum-editor-btn" type="button" data-target="editComment-{{ $c->id }}" data-cmd="bold">Gras</button>
+                                    <button class="forum-editor-btn" type="button" data-target="editComment-{{ $c->id }}" data-cmd="underline">Souligné</button>
+                                    <button class="forum-editor-btn" type="button" data-target="editComment-{{ $c->id }}" data-cmd="strike">Barré</button>
+                                    <button class="forum-editor-btn" type="button" data-target="editComment-{{ $c->id }}" data-cmd="color" data-color="#ff8c00">Orange</button>
+                                    <button class="forum-editor-btn" type="button" data-target="editComment-{{ $c->id }}" data-cmd="color" data-color="#3498db">Bleu</button>
+                                    <button class="forum-editor-btn" type="button" data-target="editComment-{{ $c->id }}" data-cmd="color" data-color="#2ecc71">Vert</button>
+                                    <button class="forum-editor-btn" type="button" data-target="editComment-{{ $c->id }}" data-cmd="emoji" data-emoji="😀">😀</button>
+                                    <button class="forum-editor-btn" type="button" data-target="editComment-{{ $c->id }}" data-cmd="emoji" data-emoji="🔥">🔥</button>
+                                    <button class="forum-editor-btn" type="button" data-target="editComment-{{ $c->id }}" data-cmd="emoji" data-emoji="🎬">🎬</button>
+                                    <button class="forum-editor-btn" type="button" data-target="editComment-{{ $c->id }}" data-cmd="img">Image</button>
+                                    <button class="forum-editor-btn" type="button" data-target="editComment-{{ $c->id }}" data-cmd="film">Ajouter un film</button>
+                                </div>
+                                <textarea class="forum-editor-textarea" id="editComment-{{ $c->id }}" name="content" rows="6" required>{{ old('content', $c->content) }}</textarea>
+                                <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:10px;">
+                                    <button class="forum-button secondary" type="button" data-cancel-edit="{{ $c->id }}">Annuler</button>
+                                    <button class="forum-button" type="submit">Enregistrer</button>
+                                </div>
+                            </form>
+                        @endif
+                        <div class="forum-comment-actions">
+                            <button class="forum-like {{ $c->is_liked ? 'active' : '' }}" type="button" data-like-id="{{ $c->id }}">
+                                <span>👍</span>
+                                <span class="count" id="like-count-{{ $c->id }}">{{ (int) ($c->likes_count ?? 0) }}</span>
+                            </button>
+                            @if($isLoggedIn)
+                                <button class="forum-editor-btn" type="button" data-reply-to="{{ $c->id }}">Répondre</button>
+                            @endif
+                            @if($canManageComment)
+                                <button class="forum-editor-btn" type="button" data-edit-comment="{{ $c->id }}">Modifier</button>
+                                <form action="{{ route('forum.comment.delete', ['id' => $c->id]) }}" method="post" style="margin:0;">
+                                    @csrf
+                                    <button class="forum-editor-btn" type="submit" onclick="return confirm('Supprimer ce message ?')">Supprimer</button>
+                                </form>
+                            @endif
+                        </div>
+                    </div>
+                </div>
             @empty
-                <li>Aucun commentaire</li>
+                <div class="forum-empty">Aucun message pour l’instant.</div>
             @endforelse
-        </ul>
-        <hr>
-        <form action="{{ route('forum.comment.store') }}" method="post">
-            @csrf
-            <input type="hidden" name="discussion_id" value="{{ $discussion->id }}">
-            <div>
-                <label for="content">Votre message</label>
-                <textarea id="content" name="content" rows="5" required>{{ old('content') }}</textarea>
-                @error('content')<div id="message-container" class="error"><p>{{ $message }}</p></div>@enderror
-            </div>
-            <div>
-                <button type="submit">Publier</button>
-            </div>
-        </form>
+        </div>
+
+        <div class="forum-card" id="reply">
+            <h2 style="margin: 0 0 8px; color: var(--text-white);">Répondre</h2>
+            @if(! $isLoggedIn)
+                <div class="forum-empty">Connecte-toi pour répondre.</div>
+            @else
+                <form action="{{ route('forum.comment.store') }}" method="post" id="commentForm">
+                    @csrf
+                    <input type="hidden" name="discussion_id" value="{{ $discussion->id }}">
+                    <input type="hidden" name="parent_id" id="parent_id" value="">
+
+                    <div class="forum-editor-toolbar">
+                        <button class="forum-editor-btn" type="button" data-target="content" data-cmd="bold">Gras</button>
+                        <button class="forum-editor-btn" type="button" data-target="content" data-cmd="underline">Souligné</button>
+                        <button class="forum-editor-btn" type="button" data-target="content" data-cmd="strike">Barré</button>
+                        <button class="forum-editor-btn" type="button" data-target="content" data-cmd="color" data-color="#ff8c00">Orange</button>
+                        <button class="forum-editor-btn" type="button" data-target="content" data-cmd="color" data-color="#3498db">Bleu</button>
+                        <button class="forum-editor-btn" type="button" data-target="content" data-cmd="color" data-color="#2ecc71">Vert</button>
+                        <button class="forum-editor-btn" type="button" data-target="content" data-cmd="emoji" data-emoji="😀">😀</button>
+                        <button class="forum-editor-btn" type="button" data-target="content" data-cmd="emoji" data-emoji="🔥">🔥</button>
+                        <button class="forum-editor-btn" type="button" data-target="content" data-cmd="emoji" data-emoji="🎬">🎬</button>
+                        <button class="forum-editor-btn" type="button" data-target="content" data-cmd="img">Image</button>
+                        <button class="forum-editor-btn" type="button" data-target="content" data-cmd="film">Ajouter un film</button>
+                    </div>
+
+                    <textarea class="forum-editor-textarea" id="content" name="content" rows="7" required placeholder="Ton message…">{{ old('content') }}</textarea>
+                    @error('content')<div class="forum-empty">{{ $message }}</div>@enderror
+
+                    <div style="display:flex;justify-content:space-between;gap:10px;margin-top:10px;align-items:center;">
+                        <button class="forum-button secondary" type="button" id="cancelReply" style="display:none;">Annuler la réponse</button>
+                        <button class="forum-button" type="submit">Publier</button>
+                    </div>
+                </form>
+            @endif
+        </div>
     </div>
+
+    <div class="forum-modal-overlay" id="forumFilmModal">
+        <div class="forum-modal" role="dialog" aria-modal="true">
+            <div class="forum-modal-head">
+                <h3 class="forum-modal-title">Ajouter un film</h3>
+                <button class="forum-modal-close" type="button" id="forumFilmModalClose">Fermer</button>
+            </div>
+            <div style="margin-top:10px;">
+                <input class="forum-input" type="text" id="forumFilmSearch" placeholder="Rechercher un film… (min 2 caractères)">
+            </div>
+            <div class="forum-modal-list" id="forumFilmResults"></div>
+        </div>
+    </div>
+
+    <script>
+        const CSRF = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+        const likeUrlTemplate = @json(url('/forum/comment/__ID__/like'));
+        const filmSearchUrl = @json(route('forum.api.films'));
+
+        function insertAtSelection(textarea, before, after, fallbackText) {
+            const start = textarea.selectionStart || 0;
+            const end = textarea.selectionEnd || 0;
+            const selected = textarea.value.slice(start, end) || fallbackText || '';
+            const next = textarea.value.slice(0, start) + before + selected + after + textarea.value.slice(end);
+            textarea.value = next;
+            const cursor = start + before.length + selected.length + after.length;
+            textarea.focus();
+            textarea.setSelectionRange(cursor, cursor);
+        }
+
+        function insertRaw(textarea, raw) {
+            const start = textarea.selectionStart || 0;
+            const end = textarea.selectionEnd || 0;
+            textarea.value = textarea.value.slice(0, start) + raw + textarea.value.slice(end);
+            const cursor = start + raw.length;
+            textarea.focus();
+            textarea.setSelectionRange(cursor, cursor);
+        }
+
+        let activeTextarea = document.getElementById('content');
+        document.querySelectorAll('.forum-editor-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const targetId = btn.getAttribute('data-target') || 'content';
+                const textarea = document.getElementById(targetId);
+                if (!textarea) return;
+                activeTextarea = textarea;
+                const cmd = btn.getAttribute('data-cmd');
+                if (!cmd) return;
+                if (cmd === 'bold') insertAtSelection(textarea, '**', '**', 'texte');
+                if (cmd === 'underline') insertAtSelection(textarea, '__', '__', 'texte');
+                if (cmd === 'strike') insertAtSelection(textarea, '~~', '~~', 'texte');
+                if (cmd === 'color') {
+                    const c = btn.getAttribute('data-color') || '#ff8c00';
+                    insertAtSelection(textarea, `[color=${c}]`, '[/color]', 'texte');
+                }
+                if (cmd === 'emoji') insertRaw(textarea, btn.getAttribute('data-emoji') || '');
+                if (cmd === 'img') {
+                    const url = prompt('URL de l’image (https://...)');
+                    if (url && url.trim()) insertRaw(textarea, `[img]${url.trim()}[/img]`);
+                }
+                if (cmd === 'film') openFilmModal();
+            });
+        });
+
+        document.addEventListener('click', async (e) => {
+            const filmLink = e.target.closest('.forum-film-link');
+            if (filmLink) {
+                e.preventDefault();
+                const id = filmLink.getAttribute('data-film-id');
+                if (window.openFilmModalForFilmId) window.openFilmModalForFilmId(id);
+                return;
+            }
+
+            const likeBtn = e.target.closest('.forum-like');
+            if (likeBtn) {
+                const id = likeBtn.getAttribute('data-like-id');
+                if (!id) return;
+                const url = likeUrlTemplate.replace('__ID__', encodeURIComponent(id));
+                const r = await fetch(url, { method: 'POST', headers: { 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' } });
+                const data = await r.json().catch(() => null);
+                if (!data || !data.success) return;
+                likeBtn.classList.toggle('active', !!data.liked);
+                const countEl = document.getElementById('like-count-' + id);
+                if (countEl) countEl.textContent = String(data.count ?? 0);
+                return;
+            }
+
+            const replyBtn = e.target.closest('[data-reply-to]');
+            if (replyBtn) {
+                const parentId = replyBtn.getAttribute('data-reply-to');
+                const parentInput = document.getElementById('parent_id');
+                const cancel = document.getElementById('cancelReply');
+                if (parentInput) parentInput.value = parentId || '';
+                cancel && (cancel.style.display = 'inline-flex');
+                activeTextarea = document.getElementById('content');
+                activeTextarea && activeTextarea.focus();
+                const anchor = document.getElementById('reply');
+                anchor && anchor.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+
+            const editBtn = e.target.closest('[data-edit-comment]');
+            if (editBtn) {
+                const id = editBtn.getAttribute('data-edit-comment');
+                const form = document.getElementById('comment-edit-form-' + id);
+                const view = document.getElementById('comment-view-' + id);
+                if (form && view) {
+                    const show = form.style.display === 'none' || !form.style.display;
+                    form.style.display = show ? 'block' : 'none';
+                    view.style.display = show ? 'none' : 'block';
+                    if (show) {
+                        const ta = document.getElementById('editComment-' + id);
+                        activeTextarea = ta;
+                        ta && ta.focus();
+                    }
+                }
+            }
+
+            const cancelEdit = e.target.closest('[data-cancel-edit]');
+            if (cancelEdit) {
+                const id = cancelEdit.getAttribute('data-cancel-edit');
+                const form = document.getElementById('comment-edit-form-' + id);
+                const view = document.getElementById('comment-view-' + id);
+                form && (form.style.display = 'none');
+                view && (view.style.display = 'block');
+            }
+        });
+
+        const cancelReply = document.getElementById('cancelReply');
+        cancelReply && cancelReply.addEventListener('click', () => {
+            const parentInput = document.getElementById('parent_id');
+            parentInput && (parentInput.value = '');
+            cancelReply.style.display = 'none';
+        });
+
+        const modal = document.getElementById('forumFilmModal');
+        const modalClose = document.getElementById('forumFilmModalClose');
+        const filmInput = document.getElementById('forumFilmSearch');
+        const filmResults = document.getElementById('forumFilmResults');
+        let lastFilmQuery = '';
+
+        function openFilmModal() {
+            if (!modal) return;
+            modal.style.display = 'flex';
+            if (filmInput) {
+                filmInput.value = '';
+                filmResults && (filmResults.innerHTML = '');
+                filmInput.focus();
+            }
+        }
+
+        function closeFilmModal() {
+            modal && (modal.style.display = 'none');
+        }
+
+        modalClose && modalClose.addEventListener('click', closeFilmModal);
+        modal && modal.addEventListener('click', (e) => {
+            if (e.target === modal) closeFilmModal();
+        });
+
+        async function fetchFilms(q) {
+            const url = new URL(filmSearchUrl, window.location.origin);
+            url.searchParams.set('q', q);
+            const r = await fetch(url.toString(), { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+            if (!r.ok) return [];
+            const data = await r.json();
+            return Array.isArray(data.items) ? data.items : [];
+        }
+
+        function renderFilms(items) {
+            if (!filmResults) return;
+            if (!items.length) {
+                filmResults.innerHTML = '<div class="forum-modal-item" style="opacity:.7;cursor:default;">Aucun résultat</div>';
+                return;
+            }
+            filmResults.innerHTML = '';
+            items.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'forum-modal-item';
+                const year = item.date_sortie ? ` (${item.date_sortie})` : '';
+                div.textContent = `${item.nom_film}${year}`;
+                div.addEventListener('click', () => {
+                    const token = `[film:${item.id}:${item.nom_film}]`;
+                    if (activeTextarea) insertRaw(activeTextarea, token);
+                    closeFilmModal();
+                });
+                filmResults.appendChild(div);
+            });
+        }
+
+        let filmTimer = null;
+        filmInput && filmInput.addEventListener('input', () => {
+            const q = (filmInput.value || '').trim();
+            if (q.length < 2) {
+                filmResults && (filmResults.innerHTML = '');
+                return;
+            }
+            if (q === lastFilmQuery) return;
+            lastFilmQuery = q;
+            filmTimer && clearTimeout(filmTimer);
+            filmTimer = setTimeout(async () => {
+                const items = await fetchFilms(q);
+                renderFilms(items);
+            }, 200);
+        });
+
+        const editDiscussionBtn = document.getElementById('editDiscussionBtn');
+        const editDiscussionCard = document.getElementById('editDiscussionCard');
+        const cancelEditDiscussionBtn = document.getElementById('cancelEditDiscussionBtn');
+        editDiscussionBtn && editDiscussionBtn.addEventListener('click', () => {
+            if (!editDiscussionCard) return;
+            editDiscussionCard.style.display = 'block';
+            editDiscussionCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            const ta = document.getElementById('editDiscussionDescription');
+            activeTextarea = ta;
+            ta && ta.focus();
+        });
+        cancelEditDiscussionBtn && cancelEditDiscussionBtn.addEventListener('click', () => {
+            editDiscussionCard && (editDiscussionCard.style.display = 'none');
+        });
+    </script>
 @endsection
