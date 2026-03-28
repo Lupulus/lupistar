@@ -3,7 +3,7 @@
 /scripts-php/forgot-password-script.php
 
 # Base de données
-db_wolf-film.sql
+db_lupistar.sql
 *.sql
 *.db
 *.sqlite
