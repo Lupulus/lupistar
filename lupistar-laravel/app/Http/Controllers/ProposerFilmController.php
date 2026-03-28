@@ -21,6 +21,20 @@ class ProposerFilmController extends Controller
             return redirect()->route('login.show');
         }
 
+        $titresHierarchie = [
+            'Membre' => 1,
+            'Amateur' => 2,
+            'Fan' => 3,
+            'NoLife' => 4,
+            'Admin' => 5,
+            'Super-Admin' => 6,
+        ];
+        $userTitle = (string) $request->session()->get('titre', '');
+        $userLevel = $titresHierarchie[$userTitle] ?? 0;
+        if ($userLevel <= 1) {
+            return redirect()->route('accueil');
+        }
+
         $sousGenres = SousGenre::query()->orderBy('nom')->pluck('nom', 'id')->toArray();
         $studios = Studio::query()->orderBy('nom')->pluck('nom', 'id')->toArray();
         $auteurs = Auteur::query()->orderBy('nom')->pluck('nom', 'id')->toArray();
@@ -38,11 +52,21 @@ class ProposerFilmController extends Controller
     public function studios(Request $request)
     {
         $categorie = trim((string) $request->query('categorie', ''));
-        $q = Studio::query()->orderBy('nom');
-        if ($categorie !== '') {
-            $q->where('categorie', 'like', '%'.$categorie.'%');
+        if ($categorie === '') {
+            $rows = Studio::query()->orderBy('nom')->get(['id', 'nom']);
+
+            return response()->json(['success' => true, 'studios' => $rows]);
         }
-        $rows = $q->get(['id', 'nom']);
+
+        $rows = DB::table('studios as s')
+            ->leftJoin('films as f', function ($join) use ($categorie) {
+                $join->on('s.id', '=', 'f.studio_id')->where('f.categorie', '=', $categorie);
+            })
+            ->where('s.categorie', 'like', '%'.$categorie.'%')
+            ->groupBy('s.id', 's.nom')
+            ->orderByDesc(DB::raw('COUNT(f.id)'))
+            ->orderBy('s.nom')
+            ->get(['s.id', 's.nom']);
 
         return response()->json(['success' => true, 'studios' => $rows]);
     }
@@ -50,11 +74,21 @@ class ProposerFilmController extends Controller
     public function auteurs(Request $request)
     {
         $categorie = trim((string) $request->query('categorie', ''));
-        $q = Auteur::query()->orderBy('nom');
-        if ($categorie !== '') {
-            $q->where('categorie', 'like', '%'.$categorie.'%');
+        if ($categorie === '') {
+            $rows = Auteur::query()->orderBy('nom')->get(['id', 'nom']);
+
+            return response()->json(['success' => true, 'auteurs' => $rows]);
         }
-        $rows = $q->get(['id', 'nom']);
+
+        $rows = DB::table('auteurs as a')
+            ->leftJoin('films as f', function ($join) use ($categorie) {
+                $join->on('a.id', '=', 'f.auteur_id')->where('f.categorie', '=', $categorie);
+            })
+            ->where('a.categorie', 'like', '%'.$categorie.'%')
+            ->groupBy('a.id', 'a.nom')
+            ->orderByDesc(DB::raw('COUNT(f.id)'))
+            ->orderBy('a.nom')
+            ->get(['a.id', 'a.nom']);
 
         return response()->json(['success' => true, 'auteurs' => $rows]);
     }
@@ -67,32 +101,58 @@ class ProposerFilmController extends Controller
             return redirect()->route('login.show');
         }
 
+        $titresHierarchie = [
+            'Membre' => 1,
+            'Amateur' => 2,
+            'Fan' => 3,
+            'NoLife' => 4,
+            'Admin' => 5,
+            'Super-Admin' => 6,
+        ];
+        $userTitle = (string) $request->session()->get('titre', '');
+        $userLevel = $titresHierarchie[$userTitle] ?? 0;
+        if ($userLevel <= 1) {
+            return redirect()->route('accueil');
+        }
+
         $data = $request->validate([
             'nom_film' => ['required', 'string', 'max:50'],
             'categorie' => ['required', 'in:Film,Animation,Anime,Série,Série d\'Animation'],
-            'date_sortie' => ['required', 'integer', 'between:1900,2100'],
+            'anime_type' => ['nullable', 'in:Film,Série'],
+            'date_sortie' => ['required', 'integer', 'between:1900,2099'],
             'description' => ['nullable', 'string', 'max:400'],
-            'ordre_suite' => ['nullable', 'integer', 'min:0'],
-            'saison' => ['nullable', 'integer', 'min:0'],
-            'nbrEpisode' => ['nullable', 'integer', 'min:0'],
-            'studio_select' => ['nullable', 'string'],
-            'nouveau_studio' => ['nullable', 'string', 'max:100'],
-            'auteur_select' => ['nullable', 'string'],
-            'nouveau_auteur' => ['nullable', 'string', 'max:100'],
-            'pays_select' => ['nullable', 'string'],
-            'nouveau_pays' => ['nullable', 'string', 'max:100'],
-            'sous_genres' => ['nullable', 'array'],
+            'ordre_suite' => ['nullable', 'integer', 'min:1', 'max:25'],
+            'saison' => ['nullable', 'integer', 'min:1', 'max:100'],
+            'nbrEpisode' => ['nullable', 'integer', 'min:1', 'max:9999'],
+            'studio_id' => ['nullable', 'string'],
+            'nouveau_studio' => ['nullable', 'string', 'max:30'],
+            'auteur_id' => ['nullable', 'string'],
+            'nouveau_auteur' => ['nullable', 'string', 'max:30'],
+            'pays_id' => ['required', 'integer'],
+            'sous_genres' => ['required', 'array', 'min:1'],
             'sous_genres.*' => ['integer'],
-            'image' => ['nullable', 'file', 'mimes:jpeg,jpg,png,webp', 'max:5120'],
+            'image' => ['required', 'file', 'mimes:jpeg,jpg,png,webp', 'max:5120'],
         ]);
 
         $nomFilm = $data['nom_film'];
         $categorie = $data['categorie'];
         $description = $data['description'] ?? null;
         $dateSortie = (int) $data['date_sortie'];
-        $ordreSuite = $data['ordre_suite'] ?? 1;
-        $saison = $data['saison'] ?? null;
-        $nbrEpisode = $data['nbrEpisode'] ?? null;
+        $animeType = (string) ($data['anime_type'] ?? '');
+
+        $isSerie = in_array($categorie, ['Série', "Série d'Animation"], true) || ($categorie === 'Anime' && $animeType === 'Série');
+        if ($isSerie) {
+            $saison = $data['saison'] ?? 1;
+            $nbrEpisode = $data['nbrEpisode'] ?? null;
+            if ($nbrEpisode === null) {
+                return back()->withErrors(['nbrEpisode' => "Le nombre d'épisodes est requis pour une série."])->withInput();
+            }
+            $ordreSuite = null;
+        } else {
+            $saison = null;
+            $nbrEpisode = null;
+            $ordreSuite = $data['ordre_suite'] ?? 1;
+        }
 
         $existsFilms = DB::table('films')->whereRaw('LOWER(nom_film) = ?', [Str::lower($nomFilm)])->exists();
         if ($existsFilms) {
@@ -103,21 +163,28 @@ class ProposerFilmController extends Controller
             return back()->withErrors(['nom_film' => 'Ce film a déjà été proposé et est en attente.'])->withInput();
         }
 
-        $studioId = $this->getDefaultOrInsert('studios', $request->string('studio_select')->toString(), $request->string('nouveau_studio')->toString(), $categorie);
-        $auteurId = $this->getDefaultOrInsert('auteurs', $request->string('auteur_select')->toString(), $request->string('nouveau_auteur')->toString(), $categorie);
-        $paysId = $this->getDefaultOrInsert('pays', $request->string('pays_select')->toString(), $request->string('nouveau_pays')->toString());
+        $studioSelectValue = $request->has('studio_id') ? $request->input('studio_id') : $request->input('studio_select');
+        $auteurSelectValue = $request->has('auteur_id') ? $request->input('auteur_id') : $request->input('auteur_select');
+        if (! is_string($studioSelectValue) || trim($studioSelectValue) === '') {
+            return back()->withErrors(['studio_id' => 'Veuillez sélectionner un studio.'])->withInput();
+        }
+        if (! is_string($auteurSelectValue) || trim($auteurSelectValue) === '') {
+            return back()->withErrors(['auteur_id' => 'Veuillez sélectionner un auteur.'])->withInput();
+        }
+        $paysId = $request->has('pays_id') ? (int) $request->input('pays_id') : (int) $this->getDefaultOrInsert('pays', $request->string('pays_select')->toString(), $request->string('nouveau_pays')->toString());
+
+        $studioId = $this->getDefaultOrInsert('studios', is_string($studioSelectValue) ? $studioSelectValue : null, $request->string('nouveau_studio')->toString(), $categorie);
+        $auteurId = $this->getDefaultOrInsert('auteurs', is_string($auteurSelectValue) ? $auteurSelectValue : null, $request->string('nouveau_auteur')->toString(), $categorie);
 
         $imagePath = null;
-        if ($request->hasFile('image')) {
-            $uploaded = $request->file('image');
-            $ext = Str::lower($uploaded->getClientOriginalExtension());
-            $safeName = $this->sanitizeFileBase($nomFilm);
-            $num = in_array($categorie, ['Série', "Série d'Animation"], true) && $saison ? $saison : $ordreSuite;
-            $timestamp = time();
-            $relative = "img-temp/{$dateSortie}-{$safeName}_{$num}_user{$userId}_{$timestamp}.{$ext}";
-            $uploaded->move(public_path('img-temp'), basename($relative));
-            $imagePath = $relative;
-        }
+        $uploaded = $request->file('image');
+        $ext = Str::lower($uploaded->getClientOriginalExtension());
+        $safeName = $this->sanitizeFileBase($nomFilm);
+        $num = $isSerie && $saison ? $saison : ($ordreSuite ?? 1);
+        $timestamp = time();
+        $relative = "img-temp/{$dateSortie}-{$safeName}_{$num}_user{$userId}_{$timestamp}.{$ext}";
+        $uploaded->move(public_path('img-temp'), basename($relative));
+        $imagePath = $relative;
 
         $filmTemp = new FilmTemp;
         $filmTemp->nom_film = $nomFilm;
@@ -135,12 +202,9 @@ class ProposerFilmController extends Controller
         $filmTemp->statut = 'en_attente';
         $filmTemp->save();
 
-        $sousGenres = $data['sous_genres'] ?? [];
-        if (! empty($sousGenres)) {
-            $ids = array_map('intval', $sousGenres);
-            $rows = array_map(fn ($id) => ['film_temp_id' => $filmTemp->id, 'sous_genre_id' => $id], $ids);
-            DB::table('films_temp_sous_genres')->insert($rows);
-        }
+        $ids = array_map('intval', $data['sous_genres']);
+        $rows = array_map(fn ($id) => ['film_temp_id' => $filmTemp->id, 'sous_genre_id' => $id], $ids);
+        DB::table('films_temp_sous_genres')->insert($rows);
 
         return redirect()->route('proposer-film.show')->with('status', 'Proposition envoyée. Merci !');
     }

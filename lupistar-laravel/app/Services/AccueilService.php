@@ -9,7 +9,7 @@ class AccueilService
 {
     public function categoriesOrderForUser(?int $userId): array
     {
-        $default = ['Animation', 'Anime', "Série d'Animation", 'Film', 'Série'];
+        $default = ['Film', 'Série', 'Animation', "Série d'Animation", 'Anime'];
 
         if (! $userId) {
             return $default;

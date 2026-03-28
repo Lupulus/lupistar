@@ -122,6 +122,7 @@
             line-height: 1.5;
             margin-bottom: 25px;
             text-align: left;
+            white-space: pre-line;
         }
 
         .custom-popup-buttons {
@@ -235,6 +236,50 @@
     <script src="{{ asset('scripts-js/notification-badge.js') }}" defer></script>
     <script src="{{ asset('scripts-js/custom-popup.js') }}" defer></script>
     <script src="{{ asset('scripts-js/scroll-to-top.js') }}" defer></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                const res = await fetch(@json(route('privacy.status')), { credentials: 'same-origin' });
+                const data = await res.json();
+                if (!data?.should_show) return;
+                if (!window.popupManager?.show) return;
+
+                const messageParts = [];
+                if (data.message) messageParts.push(data.message);
+                if (data.updated_at) messageParts.push(`Date : ${data.updated_at}`);
+                messageParts.push('Cliquez sur "Voir" pour lire la politique de confidentialité.');
+
+                const confirmed = await window.popupManager.show({
+                    type: 'confirm',
+                    title: 'Mise à jour - Politique de confidentialité',
+                    message: messageParts.join('\n\n'),
+                    confirmText: 'Voir',
+                    cancelText: 'Plus tard',
+                    showCancel: true,
+                    confirmClass: 'primary',
+                });
+
+                if (!confirmed) return;
+
+                const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+                await fetch(@json(route('privacy.ack')), {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': token,
+                        'Accept': 'application/json',
+                    },
+                    body: JSON.stringify({ version: data.current_version }),
+                });
+
+                if (data.policy_url) {
+                    window.location.href = data.policy_url;
+                }
+            } catch (e) {
+            }
+        });
+    </script>
     @yield('scripts')
 </body>
 </html>

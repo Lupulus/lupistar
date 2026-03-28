@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 
 class AdminController extends Controller
@@ -621,6 +622,150 @@ class AdminController extends Controller
         return response()->json(['success' => false, 'message' => "Échec de l'envoi de toutes les notifications."], 500);
     }
 
+    public function sendEmail(Request $request)
+    {
+        $titre = $request->session()->get('titre');
+        if ($titre !== 'Super-Admin') {
+            return response()->json(['success' => false, 'message' => 'Accès non autorisé.'], 403);
+        }
+
+        $data = $request->validate([
+            'recipient_type' => ['required', 'in:all,title,specific'],
+            'email_subject' => ['required', 'string', 'max:120'],
+            'email_message' => ['required', 'string'],
+            'user_title' => ['nullable', 'string'],
+            'search_type' => ['nullable', 'in:username,email'],
+            'user_search' => ['nullable', 'string'],
+        ]);
+
+        $fromAddress = (string) config('mail.from.address');
+        if ($fromAddress === '') {
+            return response()->json([
+                'success' => false,
+                'message' => 'MAIL_FROM_ADDRESS manquant. Configure le SMTP dans .env avant.',
+            ], 422);
+        }
+
+        $userIds = [];
+        if ($data['recipient_type'] === 'all') {
+            $userIds = DB::table('membres')
+                ->whereNotNull('email')
+                ->where('email', '<>', '')
+                ->pluck('id')
+                ->all();
+        }
+        if ($data['recipient_type'] === 'title') {
+            if (! ($data['user_title'] ?? null)) {
+                return response()->json(['success' => false, 'message' => "Veuillez sélectionner un titre d'utilisateur."], 422);
+            }
+            $userIds = DB::table('membres')
+                ->where('titre', $data['user_title'])
+                ->whereNotNull('email')
+                ->where('email', '<>', '')
+                ->pluck('id')
+                ->all();
+        }
+        if ($data['recipient_type'] === 'specific') {
+            if (! ($data['search_type'] ?? null) || ! ($data['user_search'] ?? null)) {
+                return response()->json(['success' => false, 'message' => "Veuillez spécifier le type de recherche et l'utilisateur."], 422);
+            }
+            $q = DB::table('membres')->whereNotNull('email')->where('email', '<>', '');
+            if ($data['search_type'] === 'username') {
+                $q->where('username', $data['user_search']);
+            } else {
+                $q->where('email', $data['user_search']);
+            }
+            $id = $q->value('id');
+            if (! $id) {
+                return response()->json(['success' => false, 'message' => 'Aucun utilisateur trouvé (ou pas d’email).'], 404);
+            }
+            $userIds = [(int) $id];
+        }
+
+        if (empty($userIds)) {
+            return response()->json(['success' => false, 'message' => 'Aucun destinataire trouvé.'], 404);
+        }
+
+        $emails = DB::table('membres')
+            ->whereIn('id', array_map('intval', $userIds))
+            ->whereNotNull('email')
+            ->where('email', '<>', '')
+            ->pluck('email')
+            ->map(fn ($e) => (string) $e)
+            ->unique()
+            ->values()
+            ->all();
+
+        if (empty($emails)) {
+            return response()->json(['success' => false, 'message' => 'Aucun destinataire trouvé (emails vides).'], 404);
+        }
+
+        $subject = (string) $data['email_subject'];
+        $bodyText = (string) $data['email_message'];
+        $html = '<div style="font-family:Arial,sans-serif;line-height:1.5">'
+            .nl2br(e($bodyText))
+            .'</div>';
+
+        $success = 0;
+        $error = 0;
+        foreach (array_chunk($emails, 50) as $chunk) {
+            try {
+                Mail::html($html, function ($message) use ($fromAddress, $subject, $chunk) {
+                    $message->to($fromAddress)->bcc($chunk)->subject($subject);
+                });
+                $success += count($chunk);
+            } catch (\Throwable) {
+                $error += count($chunk);
+            }
+        }
+
+        $total = count($emails);
+        if ($success === $total) {
+            return response()->json(['success' => true, 'message' => "Email envoyé avec succès à {$success} destinataire(s)."]);
+        }
+        if ($success > 0) {
+            return response()->json(['success' => true, 'message' => "Email envoyé à {$success} destinataire(s) sur {$total}. {$error} échec(s).", 'partial' => true]);
+        }
+
+        return response()->json(['success' => false, 'message' => "Échec de l'envoi de tous les emails."], 500);
+    }
+
+    public function publishPrivacyPolicy(Request $request)
+    {
+        $titre = $request->session()->get('titre');
+        if ($titre !== 'Super-Admin') {
+            return response()->json(['success' => false, 'message' => 'Accès non autorisé.'], 403);
+        }
+
+        $data = $request->validate([
+            'message' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        $now = now();
+        $nowStr = $now->toDateTimeString();
+
+        $currentVersionRaw = DB::table('site_settings')->where('key', 'privacy_policy_version')->value('value');
+        $currentVersion = is_numeric($currentVersionRaw) ? (int) $currentVersionRaw : 0;
+        $nextVersion = $currentVersion + 1;
+
+        $message = trim((string) ($data['message'] ?? ''));
+        if ($message === '') {
+            $message = 'La politique de confidentialité a été mise à jour.';
+        }
+
+        DB::table('site_settings')->upsert([
+            ['key' => 'privacy_policy_version', 'value' => (string) $nextVersion, 'updated_at' => $now],
+            ['key' => 'privacy_policy_message', 'value' => $message, 'updated_at' => $now],
+            ['key' => 'privacy_policy_updated_at', 'value' => $nowStr, 'updated_at' => $now],
+        ], ['key'], ['value', 'updated_at']);
+
+        return response()->json([
+            'success' => true,
+            'version' => $nextVersion,
+            'updated_at' => $nowStr,
+        ]);
+    }
+
     public function studioConversions(Request $request)
     {
         $titre = $request->session()->get('titre');
@@ -675,6 +820,24 @@ class AdminController extends Controller
         }
 
         return response()->json(['success' => false, 'error' => 'Action non reconnue'], 422);
+    }
+
+    public function database(Request $request)
+    {
+        $titre = (string) $request->session()->get('titre', '');
+        if ($titre !== 'Super-Admin') {
+            abort(403);
+        }
+
+        $remoteAddr = (string) $request->server('REMOTE_ADDR', '');
+        $ip = $remoteAddr !== '' ? $remoteAddr : (string) $request->ip();
+        $isLocal = in_array($ip, ['127.0.0.1', '::1'], true);
+
+        return view('Database.index', [
+            'title' => 'Base de données',
+            'isLocal' => $isLocal,
+            'ip' => $ip,
+        ]);
     }
 
     protected function notifyUser(int $userId, string $titre, string $message, string $type): void

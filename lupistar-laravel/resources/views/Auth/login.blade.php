@@ -28,6 +28,7 @@
 
         <div class="links">
             <a href="{{ route('register.show') }}">Créer un compte</a>
+            <a href="{{ route('password.forgot.show') }}">Mot de passe oublié ?</a>
             <a href="{{ route('accueil') }}">Retour à l'accueil</a>
         </div>
 
@@ -36,4 +37,3 @@
         @endif
     </div>
 @endsection
-

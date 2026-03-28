@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 
 class PasswordController extends Controller
@@ -39,9 +40,21 @@ class PasswordController extends Controller
             ]);
 
             $link = route('password.reset.show', ['token' => $token]);
+            $to = (string) ($user->email ?? '');
 
-            return back()->with('status', 'Un lien de réinitialisation a été généré.')
-                ->with('reset_link', $link);
+            try {
+                Mail::html(
+                    '<p>Bonjour,</p>
+                     <p>Vous avez demandé la réinitialisation de votre mot de passe Lupistar.</p>
+                     <p>Cliquez sur ce lien (valide 2 heures) :</p>
+                     <p><a href="'.e($link).'">'.e($link).'</a></p>
+                     <p>Si vous n\'êtes pas à l\'origine de cette demande, vous pouvez ignorer cet email.</p>',
+                    function ($message) use ($to) {
+                        $message->to($to)->subject('Réinitialisation de mot de passe - Lupistar');
+                    }
+                );
+            } catch (\Throwable) {
+            }
         }
 
         return back()->with('status', 'Si ce compte existe, un lien a été envoyé.');

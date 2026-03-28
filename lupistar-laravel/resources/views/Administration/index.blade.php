@@ -58,6 +58,15 @@
                 <span class="item-text">Envoyer notification</span>
             </div>
 
+            @if(session('titre') === 'Super-Admin')
+                <div class="summary-item" onclick="scrollToSection('super-admin-communication-section')">
+                    <div class="floating-icon">
+                        <span class="icon">📨</span>
+                    </div>
+                    <span class="item-text">Communication</span>
+                </div>
+            @endif
+
             <div class="summary-item" onclick="openStudioConversionsModal()">
                 <div class="floating-icon">
                     <span class="icon">🔄</span>
@@ -511,6 +520,101 @@
         </form>
     </div>
 
+    @if(session('titre') === 'Super-Admin')
+        <div id="super-admin-communication-section" class="admin-section">
+            <h2>Communication (Super-Admin)</h2>
+
+            <form id="emailForm">
+                <div class="form-section">
+                    <div class="form-group">
+                        <label for="email-recipient-type">Type de destinataire :</label>
+                        <select id="email-recipient-type" name="email_recipient_type" required onchange="handleEmailRecipientTypeChange()">
+                            <option value="">Sélectionnez le type</option>
+                            <option value="all">Tous les utilisateurs (avec email)</option>
+                            <option value="title">Par titre (Admin, Membre, etc.)</option>
+                            <option value="specific">Utilisateur spécifique</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div id="email-title-selection" class="form-section" style="display:none;">
+                    <div class="form-group">
+                        <label for="email-user-title">Titre des utilisateurs :</label>
+                        <select id="email-user-title" name="email_user_title">
+                            <option value="">Sélectionnez un titre</option>
+                            <option value="Super-Admin">Super-Admin</option>
+                            <option value="Admin">Admin</option>
+                            <option value="Membre">Membre</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div id="email-specific-user-selection" class="form-section" style="display:none;">
+                    <div class="form-group">
+                        <label for="email-search-type">Rechercher par :</label>
+                        <select id="email-search-type" name="email_search_type" onchange="handleEmailSearchTypeChange()">
+                            <option value="">Sélectionnez le type de recherche</option>
+                            <option value="username">Nom d'utilisateur</option>
+                            <option value="email">Adresse e-mail</option>
+                        </select>
+                    </div>
+                    <div class="form-group" id="email-user-search-group" style="display:none;">
+                        <label for="email-user-search" id="email-user-search-label">Utilisateur :</label>
+                        <input type="text" id="email-user-search" name="email_user_search" placeholder="Entrez le nom d'utilisateur ou l'e-mail">
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <div class="form-group">
+                        <label for="email-subject-type">Sujet :</label>
+                        <select id="email-subject-type" name="email_subject_type" required onchange="handleEmailSubjectTypeChange()">
+                            <option value="other" selected>Autre</option>
+                            <option value="privacy_policy">Mise à jour de la politique de confidentialité</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-section" id="email-subject-custom-group" style="display:none;">
+                    <div class="form-group">
+                        <label for="email-subject-custom">Sujet (autre) :</label>
+                        <input type="text" id="email-subject-custom" name="email_subject_custom" placeholder="Sujet de l'e-mail" maxlength="120">
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <div class="form-group">
+                        <label for="email-message">Message :</label>
+                        <textarea id="email-message" name="email_message" rows="8" placeholder="Contenu de l'e-mail" required></textarea>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <div class="form-group checkbox-group">
+                        <label class="checkbox-label" for="email-enable-popup">
+                            <input type="checkbox" id="email-enable-popup" name="email_enable_popup" onchange="handleEmailPopupToggle()">
+                            Activer un popup
+                        </label>
+                    </div>
+                </div>
+
+                <div class="form-section" id="email-popup-message-group" style="display:none;">
+                    <div class="form-group">
+                        <label for="email-popup-message">Message du popup :</label>
+                        <textarea id="email-popup-message" rows="3" maxlength="500" placeholder="Message affiché dans le popup (max 500 caractères)" oninput="updateEmailPopupCharCount()"></textarea>
+                        <span id="emailPopupCharCount" class="description-compteur">0 / 500</span>
+                    </div>
+                </div>
+
+                <div class="form-section form-actions">
+                    <button type="button" class="btn-add" onclick="sendEmail()">Envoyer</button>
+                    <button type="button" class="btn-cancel" onclick="resetEmailForm()">Réinitialiser</button>
+                </div>
+
+                <div id="email-result" class="result-message" style="display:none;"></div>
+            </form>
+        </div>
+    @endif
+
     <div id="studioConversionsModal" class="modal" style="display: none;">
         <div class="modal-content studio-conversions-modal">
             <div class="modal-header">
@@ -578,6 +682,10 @@
             deleteFilm: @json(url('/administration/films')) + '/',
             modifyFilm: @json(url('/administration/films')) + '/',
             sendNotification: @json(route('administration.send-notification')),
+            sendEmail: @json(route('administration.send-email')),
+            publishPrivacyPolicy: @json(route('administration.privacy-policy.publish')),
+            home: @json(route('accueil')),
+            confidentialite: @json(route('confidentialite')),
             studioConverter: @json(route('administration.studio-converter')),
         };
 
@@ -594,6 +702,8 @@
             handleCategoryChange();
             updateNomFilmLabel();
             loadStudioConversions();
+            handleEmailSubjectTypeChange();
+            handleEmailPopupToggle();
         });
 
         function toggleSummary() {
@@ -1318,6 +1428,238 @@
         function isValidEmail(email) {
             const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
             return emailRegex.test(email);
+        }
+
+        function handleEmailRecipientTypeChange() {
+            const recipientType = document.getElementById('email-recipient-type').value;
+            const titleSelection = document.getElementById('email-title-selection');
+            const specificUserSelection = document.getElementById('email-specific-user-selection');
+            titleSelection.style.display = 'none';
+            specificUserSelection.style.display = 'none';
+            document.getElementById('email-user-title').value = '';
+            document.getElementById('email-search-type').value = '';
+            document.getElementById('email-user-search').value = '';
+            document.getElementById('email-user-search-group').style.display = 'none';
+            if (recipientType === 'title') {
+                titleSelection.style.display = 'block';
+            } else if (recipientType === 'specific') {
+                specificUserSelection.style.display = 'block';
+            }
+        }
+
+        function handleEmailSearchTypeChange() {
+            const searchType = document.getElementById('email-search-type').value;
+            const userSearchGroup = document.getElementById('email-user-search-group');
+            const userSearchLabel = document.getElementById('email-user-search-label');
+            const userSearchInput = document.getElementById('email-user-search');
+            if (searchType) {
+                userSearchGroup.style.display = 'block';
+                if (searchType === 'username') {
+                    userSearchLabel.textContent = "Nom d'utilisateur :";
+                    userSearchInput.placeholder = "Entrez le nom d'utilisateur";
+                } else {
+                    userSearchLabel.textContent = 'Adresse e-mail :';
+                    userSearchInput.placeholder = "Entrez l'adresse e-mail";
+                }
+            } else {
+                userSearchGroup.style.display = 'none';
+            }
+            userSearchInput.value = '';
+        }
+
+        function privacyPolicyEmailTemplate() {
+            const lines = [
+                'Bonjour,',
+                '',
+                'Nous vous informons que la politique de confidentialité de Lupistar a été mise à jour.',
+                '',
+                `Pour la consulter, cliquez sur ce lien : ${routes.confidentialite}`,
+                '',
+                "Si un popup d'information est activé, il apparaîtra lors de votre prochaine visite.",
+                '',
+                `Accéder au site : ${routes.home}`,
+                '',
+                'Merci,',
+                'Lupistar',
+            ];
+            return lines.join('\n');
+        }
+
+        function handleEmailSubjectTypeChange() {
+            const type = document.getElementById('email-subject-type')?.value || 'other';
+            const customGroup = document.getElementById('email-subject-custom-group');
+            const subjectCustom = document.getElementById('email-subject-custom');
+            const message = document.getElementById('email-message');
+
+            if (type === 'other') {
+                if (customGroup) customGroup.style.display = 'block';
+                if (subjectCustom) subjectCustom.required = true;
+            } else {
+                if (customGroup) customGroup.style.display = 'none';
+                if (subjectCustom) {
+                    subjectCustom.required = false;
+                    subjectCustom.value = '';
+                }
+                if (message) {
+                    message.value = privacyPolicyEmailTemplate();
+                }
+            }
+        }
+
+        function updateEmailPopupCharCount() {
+            const textarea = document.getElementById('email-popup-message');
+            const counter = document.getElementById('emailPopupCharCount');
+            if (!textarea || !counter) return;
+            counter.textContent = `${textarea.value.length} / 500`;
+        }
+
+        function handleEmailPopupToggle() {
+            const enabled = document.getElementById('email-enable-popup')?.checked || false;
+            const group = document.getElementById('email-popup-message-group');
+            if (!group) return;
+            group.style.display = enabled ? 'block' : 'none';
+            if (!enabled) {
+                const textarea = document.getElementById('email-popup-message');
+                if (textarea) textarea.value = '';
+            }
+            updateEmailPopupCharCount();
+        }
+
+        async function doPublishPrivacyPolicy(messageText) {
+            const formData = new FormData();
+            formData.append('message', messageText || '');
+            try {
+                const r = await fetch(routes.publishPrivacyPolicy, { method: 'POST', body: formData, headers: { 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' } });
+                const data = await r.json();
+                return data;
+            } catch (e) {
+                return { success: false };
+            }
+        }
+
+        function sendEmail() {
+            const recipientType = document.getElementById('email-recipient-type')?.value || '';
+            const subjectType = document.getElementById('email-subject-type')?.value || 'other';
+            const subjectCustom = document.getElementById('email-subject-custom')?.value.trim() || '';
+            const message = document.getElementById('email-message')?.value.trim() || '';
+            const enablePopup = document.getElementById('email-enable-popup')?.checked || false;
+            const popupMessage = document.getElementById('email-popup-message')?.value.trim() || '';
+
+            const subject = subjectType === 'privacy_policy'
+                ? 'Mise à jour de la politique de confidentialité'
+                : subjectCustom;
+
+            if (!recipientType) {
+                showEmailResult('Veuillez sélectionner un type de destinataire.', 'error');
+                return;
+            }
+            if (!subject) {
+                showEmailResult("Veuillez saisir un sujet d'e-mail.", 'error');
+                return;
+            }
+            if (!message) {
+                showEmailResult("Veuillez saisir un message d'e-mail.", 'error');
+                return;
+            }
+
+            if (recipientType === 'title') {
+                const userTitle = document.getElementById('email-user-title').value;
+                if (!userTitle) {
+                    showEmailResult('Veuillez sélectionner un titre d\'utilisateur.', 'error');
+                    return;
+                }
+            }
+            if (recipientType === 'specific') {
+                const searchType = document.getElementById('email-search-type').value;
+                const userSearch = document.getElementById('email-user-search').value.trim();
+                if (!searchType) {
+                    showEmailResult('Veuillez sélectionner un type de recherche.', 'error');
+                    return;
+                }
+                if (!userSearch) {
+                    showEmailResult('Veuillez saisir un nom d\'utilisateur ou une adresse e-mail.', 'error');
+                    return;
+                }
+                if (searchType === 'email' && !isValidEmail(userSearch)) {
+                    showEmailResult('Veuillez saisir une adresse e-mail valide.', 'error');
+                    return;
+                }
+            }
+
+            const sendNow = async () => {
+                if (enablePopup) {
+                    showEmailResult('Publication de la mise à jour...', 'info');
+                    const publish = await doPublishPrivacyPolicy(popupMessage);
+                    if (!publish?.success) {
+                        showEmailResult(publish?.message || publish?.error || 'Erreur lors de la publication de la mise à jour.', 'error');
+                        return;
+                    }
+                }
+
+                const formData = new FormData();
+                formData.append('recipient_type', recipientType);
+                formData.append('email_subject', subject);
+                formData.append('email_message', message);
+                if (recipientType === 'title') {
+                    formData.append('user_title', document.getElementById('email-user-title').value);
+                } else if (recipientType === 'specific') {
+                    formData.append('search_type', document.getElementById('email-search-type').value);
+                    formData.append('user_search', document.getElementById('email-user-search').value.trim());
+                }
+
+                showEmailResult('Envoi en cours...', 'info');
+                try {
+                    const r = await fetch(routes.sendEmail, { method: 'POST', body: formData, headers: { 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' } });
+                    const data = await r.json();
+                    if (data.success) {
+                        showEmailResult(data.message, 'success');
+                        resetEmailForm();
+                    } else {
+                        showEmailResult(data.message || data.error || 'Erreur', 'error');
+                    }
+                } catch (e) {
+                    showEmailResult('Une erreur est survenue lors de l\'envoi de l\'e-mail.', 'error');
+                }
+            };
+
+            if (enablePopup && window.customConfirm) {
+                window.customConfirm('Activer le popup (mise à jour) et envoyer l’e-mail ?', 'Confirmer')
+                    .then(ok => { if (ok) sendNow(); });
+            } else {
+                sendNow();
+            }
+        }
+
+        function showEmailResult(message, type) {
+            const resultDiv = document.getElementById('email-result');
+            if (!resultDiv) return;
+            resultDiv.textContent = message;
+            resultDiv.className = 'result-message ' + type;
+            resultDiv.style.display = 'block';
+            resultDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            if (type === 'success') {
+                setTimeout(() => { resultDiv.style.display = 'none'; }, 7000);
+            }
+        }
+
+        function resetEmailForm() {
+            const form = document.getElementById('emailForm');
+            if (!form) return;
+            form.reset();
+            const titleSelection = document.getElementById('email-title-selection');
+            const specificUserSelection = document.getElementById('email-specific-user-selection');
+            const userSearchGroup = document.getElementById('email-user-search-group');
+            const subjectCustomGroup = document.getElementById('email-subject-custom-group');
+            const popupGroup = document.getElementById('email-popup-message-group');
+            const result = document.getElementById('email-result');
+            if (titleSelection) titleSelection.style.display = 'none';
+            if (specificUserSelection) specificUserSelection.style.display = 'none';
+            if (userSearchGroup) userSearchGroup.style.display = 'none';
+            if (subjectCustomGroup) subjectCustomGroup.style.display = 'none';
+            if (popupGroup) popupGroup.style.display = 'none';
+            if (result) result.style.display = 'none';
+            handleEmailSubjectTypeChange();
+            handleEmailPopupToggle();
         }
 
         function openStudioConversionsModal() {

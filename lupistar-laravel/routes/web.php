@@ -52,13 +52,22 @@ Route::get('/administration/studios', [AdminController::class, 'studiosByCategor
 Route::get('/administration/autocomplete/studios', [AdminController::class, 'autocompleteStudios'])->name('administration.autocomplete.studios');
 Route::get('/administration/autocomplete/auteurs', [AdminController::class, 'autocompleteAuteurs'])->name('administration.autocomplete.auteurs');
 Route::post('/administration/send-notification', [AdminController::class, 'sendNotification'])->name('administration.send-notification');
+Route::post('/administration/send-email', [AdminController::class, 'sendEmail'])->name('administration.send-email');
+Route::post('/administration/privacy-policy/publish', [AdminController::class, 'publishPrivacyPolicy'])->name('administration.privacy-policy.publish');
 Route::match(['get', 'post'], '/administration/studio-converter', [AdminController::class, 'studioConversions'])->name('administration.studio-converter');
+Route::get('/database', [AdminController::class, 'database'])->name('database');
 Route::get('/forum', [ForumController::class, 'index'])->name('forum');
 Route::get('/forum/categorie/{id}', [ForumDiscussionController::class, 'index'])->name('forum.category');
 Route::get('/forum/discussion/{id}', [ForumDiscussionController::class, 'show'])->name('forum.discussion');
 Route::post('/forum/discussion', [ForumDiscussionController::class, 'store'])->name('forum.discussion.store');
 Route::post('/forum/comment', [ForumCommentController::class, 'store'])->name('forum.comment.store');
 Route::get('/membres', [MembresController::class, 'index'])->name('membres');
+Route::post('/membres/title', [MembresController::class, 'updateTitle'])->name('membres.title');
+Route::post('/membres/restriction', [MembresController::class, 'updateRestriction'])->name('membres.restriction');
+Route::post('/membres/email', [MembresController::class, 'updateEmail'])->name('membres.email');
+Route::post('/membres/username', [MembresController::class, 'updateUsername'])->name('membres.username');
+Route::post('/membres/warning-reward', [MembresController::class, 'updateWarningReward'])->name('membres.warning-reward');
+Route::post('/membres/promotion', [MembresController::class, 'traiterPromotion'])->name('membres.promotion');
 Route::get('/mon-compte', [MonCompteController::class, 'show'])->name('mon-compte');
 Route::post('/mon-compte/email', [MonCompteController::class, 'updateEmail'])->name('mon-compte.update-email');
 Route::post('/mon-compte/password', [MonCompteController::class, 'updatePassword'])->name('mon-compte.update-password');
@@ -72,6 +81,8 @@ Route::get('/proposer-film/auteurs', [ProposerFilmController::class, 'auteurs'])
 
 Route::view('/confidentialite', 'Static.confidentialite')->name('confidentialite');
 Route::view('/mentions-legales', 'Static.mentions-legales')->name('mentions-legales');
+Route::get('/privacy/status', [MonCompteController::class, 'privacyPolicyStatus'])->name('privacy.status');
+Route::post('/privacy/ack', [MonCompteController::class, 'acknowledgePrivacyPolicy'])->name('privacy.ack');
 
 Route::get('/forgot-password', [PasswordController::class, 'showForgot'])->name('password.forgot.show');
 Route::post('/forgot-password', [PasswordController::class, 'sendForgot'])->name('password.forgot.perform');

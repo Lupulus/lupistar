@@ -1,0 +1,74 @@
+@import url('./style-admin.css');
+
+.database-container {
+    display: block;
+    justify-content: center;
+    align-items: center;
+    margin: auto 3.5rem auto 3.5rem;
+    padding: 1.5rem;
+    background: linear-gradient(135deg, var(--light-gray) 0%, var(--medium-gray) 100%);
+    border: 2px solid var(--accent-orange);
+    border-radius: 12px;
+    width: auto;
+    overflow: hidden;
+    box-shadow: 0 8px 25px var(--shadow-darker);
+}
+
+.database-container h2 {
+    color: var(--accent-orange);
+    margin-bottom: 25px;
+    font-size: 1.8em;
+    text-align: center;
+    text-shadow: 0 2px 4px var(--shadow-dark);
+}
+
+.database-actions {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 16px;
+    padding: 12px 0;
+    flex-wrap: wrap;
+}
+
+.database-btn {
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    min-width: 180px;
+    padding: 12px 18px;
+    border-radius: 10px;
+    border: 2px solid var(--accent-orange);
+    background: linear-gradient(135deg, var(--secondary-dark) 0%, var(--tertiary-dark) 100%);
+    color: var(--text-white);
+    text-decoration: none;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    box-shadow: 0 4px 15px var(--shadow-dark);
+}
+
+.database-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px var(--shadow-darker);
+    border-color: var(--accent-orange-hover);
+}
+
+.database-btn.disabled,
+.database-btn:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.database-warning {
+    text-align: center;
+    color: var(--text-white);
+    background: linear-gradient(135deg, #e74c3c, #c0392b);
+    border: 2px solid rgba(0, 0, 0, 0.25);
+    border-radius: 10px;
+    padding: 14px 16px;
+    max-width: 520px;
+    margin: 0 auto;
+    box-shadow: 0 8px 25px var(--shadow-darker);
+}

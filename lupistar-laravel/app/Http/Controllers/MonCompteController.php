@@ -200,8 +200,87 @@ class MonCompteController extends Controller
         return response()->json(['success' => true]);
     }
 
+    public function privacyPolicyStatus(Request $request)
+    {
+        try {
+            $currentVersionRaw = DB::table('site_settings')->where('key', 'privacy_policy_version')->value('value');
+            $currentVersion = is_numeric($currentVersionRaw) ? (int) $currentVersionRaw : 0;
+            $message = (string) (DB::table('site_settings')->where('key', 'privacy_policy_message')->value('value') ?? '');
+            $updatedAt = (string) (DB::table('site_settings')->where('key', 'privacy_policy_updated_at')->value('value') ?? '');
+        } catch (\Throwable) {
+            return response()->json([
+                'success' => true,
+                'should_show' => false,
+                'current_version' => 0,
+                'ack_version' => 0,
+            ]);
+        }
+
+        $userId = $request->session()->get('user_id');
+        $userId = is_numeric($userId) ? (int) $userId : null;
+
+        $ackVersion = 0;
+        if ($userId) {
+            $raw = DB::table('user_preferences')
+                ->where('user_id', $userId)
+                ->where('preference_type', 'privacy_policy_ack')
+                ->value('preference_value');
+            $ackVersion = is_numeric($raw) ? (int) $raw : 0;
+        } else {
+            $cookieValue = $request->cookie('pp_ack');
+            $ackVersion = is_numeric($cookieValue) ? (int) $cookieValue : 0;
+        }
+
+        return response()->json([
+            'success' => true,
+            'should_show' => $currentVersion > 0 && $ackVersion < $currentVersion,
+            'current_version' => $currentVersion,
+            'ack_version' => $ackVersion,
+            'message' => $message,
+            'updated_at' => $updatedAt,
+            'policy_url' => route('confidentialite'),
+        ]);
+    }
+
+    public function acknowledgePrivacyPolicy(Request $request)
+    {
+        $data = $request->validate([
+            'version' => ['required', 'integer', 'min:0'],
+        ]);
+
+        $version = (int) $data['version'];
+        $cookie = cookie('pp_ack', (string) $version, 60 * 24 * 365);
+
+        $userId = $request->session()->get('user_id');
+        $userId = is_numeric($userId) ? (int) $userId : null;
+
+        if ($userId) {
+            $exists = DB::table('user_preferences')
+                ->where('user_id', $userId)
+                ->where('preference_type', 'privacy_policy_ack')
+                ->exists();
+
+            if ($exists) {
+                DB::table('user_preferences')
+                    ->where('user_id', $userId)
+                    ->where('preference_type', 'privacy_policy_ack')
+                    ->update(['preference_value' => (string) $version, 'updated_at' => now()]);
+            } else {
+                DB::table('user_preferences')->insert([
+                    'user_id' => $userId,
+                    'preference_type' => 'privacy_policy_ack',
+                    'preference_value' => (string) $version,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+        }
+
+        return response()->json(['success' => true])->cookie($cookie);
+    }
+
     private function defaultCategories(): array
     {
-        return ['Film', 'Animation', 'Anime', 'Série', "Série d'Animation"];
+        return ['Film', 'Série', 'Animation', "Série d'Animation", 'Anime'];
     }
 }

@@ -30,9 +30,5 @@
         @if(session('status'))
             <div id="message-container" class="success"><p>{{ session('status') }}</p></div>
         @endif
-        @if(session('reset_link'))
-            <div id="message-container" class="warning"><p>Lien de test (dev): <a href="{{ session('reset_link') }}">{{ session('reset_link') }}</a></p></div>
-        @endif
     </div>
 @endsection
-

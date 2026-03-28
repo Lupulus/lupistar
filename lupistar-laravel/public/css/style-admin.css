@@ -2602,6 +2602,213 @@ h2 {
     }
 }
 
+/* Styles pour la section Communication (Super-Admin) */
+#super-admin-communication-section {
+    margin-top: 40px;
+    padding: 30px;
+}
+
+#super-admin-communication-section h2 {
+    color: var(--accent-orange);
+    margin-bottom: 25px;
+    font-size: 1.8em;
+    text-align: center;
+    text-shadow: 0 2px 4px var(--shadow-dark);
+}
+
+#super-admin-communication-section .communication-block {
+    background: rgba(0, 0, 0, 0.15);
+    border: 2px solid var(--tertiary-dark);
+    border-radius: 12px;
+    padding: 22px;
+    box-shadow: 0 6px 18px var(--shadow-dark);
+}
+
+#super-admin-communication-section .communication-block h3 {
+    margin: 0 0 20px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--tertiary-dark);
+}
+
+#super-admin-communication-section h3 {
+    color: var(--text-white);
+    margin: 25px 0 15px;
+    font-size: 1.2em;
+    font-weight: 700;
+    text-shadow: 1px 1px 2px var(--shadow-dark);
+}
+
+#super-admin-communication-section .form-group {
+    margin-bottom: 20px;
+}
+
+#super-admin-communication-section .form-group label {
+    display: block;
+    margin-bottom: 8px;
+    color: var(--text-white);
+    font-weight: 600;
+    font-size: 1.1em;
+    text-shadow: 1px 1px 2px var(--shadow-dark);
+}
+
+#super-admin-communication-section select,
+#super-admin-communication-section input[type="text"],
+#super-admin-communication-section textarea {
+    width: 100%;
+    padding: 12px;
+    background: var(--secondary-dark);
+    border: 2px solid var(--tertiary-dark);
+    border-radius: 8px;
+    color: var(--text-white);
+    font-size: 14px;
+    transition: all 0.3s ease;
+    box-sizing: border-box;
+}
+
+#super-admin-communication-section select {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background: var(--secondary-dark) url('../img/arrow-down.webp') no-repeat right;
+    background-size: 20px;
+    padding-right: 40px;
+}
+
+#super-admin-communication-section select option {
+    background: var(--secondary-dark);
+    color: var(--text-white);
+    padding: 8px 12px;
+}
+
+#super-admin-communication-section select:focus,
+#super-admin-communication-section input[type="text"]:focus,
+#super-admin-communication-section textarea:focus {
+    outline: none;
+    border-color: var(--accent-orange);
+    box-shadow: 0 0 8px var(--accent-orange-light);
+}
+
+#super-admin-communication-section textarea {
+    resize: vertical;
+    min-height: 120px;
+    font-family: inherit;
+}
+
+#super-admin-communication-section .checkbox-group {
+    margin-bottom: 0;
+}
+
+#super-admin-communication-section .checkbox-group .checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 0;
+    cursor: pointer;
+    user-select: none;
+}
+
+#super-admin-communication-section .checkbox-group input[type="checkbox"] {
+    width: auto;
+    transform: scale(1.1);
+}
+
+#super-admin-communication-section #email-popup-message {
+    min-height: 90px;
+}
+
+#super-admin-communication-section .form-actions {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    margin-top: 30px;
+}
+
+#super-admin-communication-section .btn-add,
+#super-admin-communication-section .btn-cancel {
+    padding: 12px 25px;
+    border: none;
+    border-radius: 8px;
+    font-size: 1em;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+#super-admin-communication-section .btn-add {
+    background: linear-gradient(135deg, var(--accent-orange) 0%, var(--accent-orange-hover) 100%);
+    color: var(--text-white);
+    box-shadow: 0 4px 15px rgba(255, 140, 0, 0.3);
+}
+
+#super-admin-communication-section .btn-add:hover {
+    background: linear-gradient(135deg, var(--accent-orange-hover) 0%, #ff6600 100%);
+    box-shadow: 0 6px 20px rgba(255, 140, 0, 0.4);
+    transform: translateY(-2px);
+}
+
+#super-admin-communication-section .btn-cancel {
+    background: linear-gradient(135deg, var(--light-gray) 0%, var(--medium-gray) 100%);
+    color: var(--text-white);
+    box-shadow: 0 4px 15px var(--shadow-dark);
+}
+
+#super-admin-communication-section .btn-cancel:hover {
+    background: linear-gradient(135deg, var(--medium-gray) 0%, var(--tertiary-dark) 100%);
+    box-shadow: 0 6px 20px var(--shadow-darker);
+    transform: translateY(-2px);
+}
+
+#email-result {
+    margin-top: 20px;
+    padding: 15px;
+    border-radius: 8px;
+    font-weight: 500;
+    text-align: center;
+    animation: slideIn 0.3s ease-out;
+}
+
+#email-result.success {
+    background: linear-gradient(135deg, rgba(40, 167, 69, 0.2), rgba(40, 167, 69, 0.1));
+    border: 1px solid rgba(40, 167, 69, 0.5);
+    color: #28a745;
+}
+
+#email-result.error {
+    background: linear-gradient(135deg, rgba(220, 53, 69, 0.2), rgba(220, 53, 69, 0.1));
+    border: 1px solid rgba(220, 53, 69, 0.5);
+    color: #dc3545;
+}
+
+#email-result.info {
+    background: linear-gradient(135deg, rgba(255, 193, 7, 0.15), rgba(255, 193, 7, 0.08));
+    border: 1px solid rgba(255, 193, 7, 0.4);
+    color: #f39c12;
+}
+
+@media (max-width: 768px) {
+    #super-admin-communication-section {
+        padding: 20px;
+        margin-top: 30px;
+    }
+
+    #super-admin-communication-section h2 {
+        font-size: 1.5em;
+    }
+
+    #super-admin-communication-section .form-actions {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    #super-admin-communication-section .btn-add,
+    #super-admin-communication-section .btn-cancel {
+        width: 100%;
+        max-width: 250px;
+    }
+}
+
 /* Responsive pour la sidebar */
 @media (max-width: 768px) {
     .admin-summary-sidebar {
