@@ -2,6 +2,7 @@
 
 @section('styles')
     <link rel="stylesheet" href="{{ asset('css/style-admin.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/style-admin-modal.css') }}">
 @endsection
 
 @section('content')
@@ -30,13 +31,6 @@
         </div>
 
         <div class="summary-content" id="summary-content">
-            <div class="summary-item" onclick="scrollToSection('add-film-section')">
-                <div class="floating-icon">
-                    <span class="icon">➕</span>
-                </div>
-                <span class="item-text">Ajouter un film</span>
-            </div>
-
             <div class="summary-item" onclick="scrollToSection('pending-films-section')">
                 <div class="floating-icon">
                     <span class="icon">⏳</span>
@@ -76,165 +70,6 @@
         </div>
     </div>
 
-    <div id="add-film-section" class="admin-section">
-        <h2>Ajouter un film</h2>
-        <form id="filmForm" action="{{ route('administration.add-film') }}" method="post" enctype="multipart/form-data">
-            @csrf
-            <div class="form-section two-columns">
-                <div class="form-group">
-                    <label id="nom_film_label" for="nom_film">Nom du film :</label>
-                    <input type="text" id="nom_film" name="nom_film" placeholder="Nom du film (max 50 caractères)" maxlength="50" required>
-                </div>
-                <div class="form-group">
-                    <label id="categorie_label" for="categorie">Catégorie :</label>
-                    <select id="categorie" name="categorie" required onchange="updateStudios()">
-                        <option value="">Sélectionnez une catégorie</option>
-                        @foreach($categories as $cat)
-                            <option value="{{ $cat }}">{{ $cat }}</option>
-                        @endforeach
-                    </select>
-                </div>
-            </div>
-
-            <div id="anime-type-section" class="form-section two-columns" style="display:none;">
-                <div class="form-group">
-                    <label for="anime_type">Type d'Anime :</label>
-                    <select id="anime_type" name="anime_type" onchange="handleAnimeTypeChange()">
-                        <option value="">Sélectionnez le type</option>
-                        <option value="Film">Film</option>
-                        <option value="Série">Série</option>
-                    </select>
-                </div>
-            </div>
-
-            <div class="form-section full-width">
-                <div class="form-group">
-                    <label id="description_label" for="description">Description :</label>
-                    <textarea id="description" name="description" rows="4" cols="50" placeholder="Pas de description" maxlength="400" oninput="updateCharCount()"></textarea>
-                    <span id="charCount" class="description-compteur">0 / 400</span>
-                </div>
-            </div>
-
-            <div class="form-section three-columns">
-                <div class="form-group">
-                    <label id="date_sortie_label" for="date_sortie">Année de sortie :</label>
-                    <input type="number" id="date_sortie" name="date_sortie" min="1900" max="2099" step="1" value="{{ date('Y') }}" required>
-                </div>
-                <div class="form-group">
-                    <label id="image_label" for="image">Image du film :</label>
-                    <input type="file" id="image" name="image" accept="image/*" required>
-                </div>
-                <div class="form-group">
-                    <label id="ordre_suite_label" for="ordre_suite">Ordre (Suite?) :</label>
-                    <input type="number" id="ordre_suite" name="ordre_suite" min="1" max="25" step="1" placeholder="1">
-                </div>
-            </div>
-
-            <div class="form-section two-columns">
-                <div class="form-group">
-                    <label id="saison_label" for="saison" style="display:none;">Numéro de saison :</label>
-                    <input type="number" id="saison" name="saison" min="1" max="100" placeholder="1" style="display:none;">
-                </div>
-                <div class="form-group">
-                    <label id="nbrEpisode_label" for="nbrEpisode" style="display:none;">Nombre d'épisodes :</label>
-                    <input type="number" id="nbrEpisode" name="nbrEpisode" min="1" max="9999" placeholder="10" style="display:none;">
-                </div>
-            </div>
-
-            <div class="form-section two-columns">
-                <div class="form-group">
-                    <label id="studio_label" for="studio">Studio :</label>
-                    <select id="studio" name="studio_id" required onchange="toggleAutreStudio()">
-                        <option value="">Sélectionnez un studio</option>
-                        <option value="autre">Autre</option>
-                        @if(isset($studios[1]))
-                            <option value="1">{{ $studios[1] }}</option>
-                        @endif
-                        @foreach($studios as $id => $nom)
-                            @continue((int) $id === 1)
-                            <option value="{{ $id }}">{{ $nom }}</option>
-                        @endforeach
-                    </select>
-                    <input type="text" id="nouveau_studio" name="nouveau_studio" placeholder="Nom du studio" maxlength="30" style="display:none;">
-                </div>
-                <div class="form-group">
-                    <label id="auteur_label" for="auteur">Auteur :</label>
-                    <select id="auteur" name="auteur_id" required>
-                        <option value="">Sélectionnez un auteur</option>
-                        <option value="autre">Autre</option>
-                        @if(isset($auteurs[1]))
-                            <option value="1">{{ $auteurs[1] }}</option>
-                        @endif
-                        @foreach($auteurs as $id => $nom)
-                            @continue((int) $id === 1)
-                            <option value="{{ $id }}">{{ $nom }}</option>
-                        @endforeach
-                    </select>
-                    <input type="text" id="nouveau_auteur" name="nouveau_auteur" placeholder="Nom de l'auteur" maxlength="30" style="display:none;">
-                </div>
-            </div>
-
-            <div class="form-section full-width">
-                <div class="form-group">
-                    <label id="pays_label" for="pays">Pays :</label>
-                    <select id="pays" name="pays_id" required onchange="handlePaysChange()">
-                        <option value="">Sélectionnez un pays</option>
-                        @foreach($pays as $id => $nom)
-                            <option value="{{ $id }}">{{ $nom }}</option>
-                        @endforeach
-                    </select>
-                    <div id="japan-notification" class="japan-notification" style="display: none;">
-                        <span class="notification-icon">ℹ️</span>
-                        <span class="notification-text">Les films et séries d'animation japonaises appartiennent à la catégorie "Anime".</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="form-section full-width">
-                <div class="form-group">
-                    <label id="sous-genres_label">Sous-genres :</label>
-                    <div id="sous-genres-container">
-                        @php
-                            $sousGenresList = array_values($sousGenres);
-                            $sousGenresKeys = array_keys($sousGenres);
-                            $totalSousGenres = count($sousGenresList);
-                            $colonnes = 6;
-                            $lignes = (int) ceil($totalSousGenres / $colonnes);
-                        @endphp
-                        <table>
-                            <tbody>
-                                @for($i = 0; $i < $lignes; $i++)
-                                    <tr>
-                                        @for($j = 0; $j < $colonnes; $j++)
-                                            @php $index = ($i * $colonnes) + $j; @endphp
-                                            @if($index < $totalSousGenres)
-                                                @php
-                                                    $id = $sousGenresKeys[$index];
-                                                    $nom = $sousGenres[$id];
-                                                @endphp
-                                                <td>
-                                                    <label class="checkbox-label">
-                                                        <input type="checkbox" name="sous_genres[]" value="{{ $id }}"> {{ $nom }}
-                                                    </label>
-                                                </td>
-                                            @else
-                                                <td></td>
-                                            @endif
-                                        @endfor
-                                    </tr>
-                                @endfor
-                            </tbody>
-                        </table>
-                    </div>
-                    <p style="color: red; display: none;" id="sous-genre-warning">⚠️ Sélectionnez au moins un sous-genre.</p>
-                </div>
-            </div>
-
-            <input id="Bouton-ajouter" type="submit" value="Ajouter le film">
-        </form>
-        <div id="notification"></div>
-    </div>
-
     <div id="pending-films-section" class="admin-section">
         <h2>Films en attente d'approbation</h2>
         <div id="pending-films-container" class="pending-container">
@@ -242,8 +77,8 @@
             <div id="pending-films-list" class="pending-films-list"></div>
         </div>
 
-        <div id="pendingFilmModal" class="modal" style="display: none;">
-            <div class="modal-content">
+        <div id="pendingFilmModal" class="admin-modal" style="display: none;">
+            <div class="admin-modal-content">
                 <span class="close" onclick="closePendingFilmModal()">&times;</span>
                 <h3 id="modal-film-title">Examiner la proposition</h3>
 
@@ -574,10 +409,10 @@
                     </div>
                 </div>
 
-                <div class="form-section" id="email-subject-custom-group" style="display:none;">
+                <div class="form-section" id="email-subject-custom-group">
                     <div class="form-group">
                         <label for="email-subject-custom">Sujet (autre) :</label>
-                        <input type="text" id="email-subject-custom" name="email_subject_custom" placeholder="Sujet de l'e-mail" maxlength="120">
+                        <input type="text" id="email-subject-custom" name="email_subject_custom" placeholder="Sujet de l'e-mail" maxlength="120" required>
                     </div>
                 </div>
 
@@ -590,9 +425,9 @@
 
                 <div class="form-section">
                     <div class="form-group checkbox-group">
-                        <label class="checkbox-label" for="email-enable-popup">
-                            <input type="checkbox" id="email-enable-popup" name="email_enable_popup" onchange="handleEmailPopupToggle()">
-                            Activer un popup
+                        <label class="checkbox-label" for="email-send-notification">
+                            <input type="checkbox" id="email-send-notification" name="email_send_notification">
+                            Envoyer une notification
                         </label>
                     </div>
                 </div>
@@ -615,55 +450,69 @@
         </div>
     @endif
 
-    <div id="studioConversionsModal" class="modal" style="display: none;">
-        <div class="modal-content studio-conversions-modal">
+    <div id="studioConversionsModal" class="admin-modal" style="display: none;">
+        <div class="admin-modal-content studio-conversions-modal">
             <div class="modal-header">
                 <h3>🔄 Gestion des Conversions de Studios</h3>
                 <span class="close" onclick="closeStudioConversionsModal()">&times;</span>
             </div>
 
             <div class="modal-body">
-                <div class="conversions-info">
-                    <p>Cette section permet de gérer les conversions automatiques des noms de studios pour éviter les doublons dans la base de données.</p>
-                </div>
-
-                <div class="add-conversion-section">
-                    <h4>Ajouter une nouvelle conversion</h4>
-                    <div class="conversion-form">
-                        <div class="form-group">
-                            <label for="conversion-key">Clé de conversion :</label>
-                            <input type="text" id="conversion-key" placeholder="ex: walt-disney" maxlength="50">
+                <div class="studio-conversions-grid">
+                    <div class="left-pane">
+                        <div class="searchbar">
+                            <input type="text" id="studio-search" placeholder="Rechercher des studios (comparateur dynamique)">
                         </div>
-                        <div class="form-group">
-                            <label for="conversion-patterns">Variantes (une par ligne) :</label>
-                            <textarea id="conversion-patterns" rows="4" placeholder="Walt Disney&#10;Walt Disney Pictures&#10;WaltDisney&#10;Disney"></textarea>
-                        </div>
-                        <div class="form-group">
-                            <label for="conversion-target">Nom cible :</label>
-                            <input type="text" id="conversion-target" placeholder="Walt Disney" maxlength="100">
-                        </div>
-                        <button type="button" class="btn-add-conversion" onclick="addConversion()">Ajouter la conversion</button>
+                        <div class="studio-suggestions" id="studio-suggestions"></div>
+                        <div class="studio-list" id="studio-list"></div>
                     </div>
-                </div>
 
-                <div class="existing-conversions-section">
-                    <h4>Conversions existantes</h4>
-                    <div id="conversions-list" class="conversions-list"></div>
-                </div>
+                    <div class="right-pane">
+                        <div class="selected-studio-header">
+                            <h4 id="selected-studio-title">Sélectionnez un studio</h4>
+                        </div>
 
-                <div class="test-conversion-section">
-                    <h4>Tester une conversion</h4>
-                    <div class="test-form">
-                        <input type="text" id="test-studio-name" placeholder="Entrez un nom de studio à tester">
-                        <button type="button" class="btn-test-conversion" onclick="testConversion()">Tester</button>
-                        <div id="test-result" class="test-result"></div>
+                        <div class="tags-section">
+                            <div class="add-tag">
+                                <input type="text" id="new-tag-input" class="modal-input" placeholder="Ajouter une variante (minuscule, non sensible à la casse)">
+                                <button type="button" class="btn-add-tag" onclick="addStudioTag()">Ajouter</button>
+                            </div>
+                            <div id="studio-tags" class="tags"></div>
+                        </div>
+
+                        <hr class="section-separator">
+
+                        <div class="merge-section">
+                            <h4>Transférer / Fusionner un studio</h4>
+                            <div class="merge-controls">
+                                <div class="form-group">
+                                    <label>Studio à garder</label>
+                                    <select id="merge-keep" class="modal-input"></select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Studio à remplacer</label>
+                                    <select id="merge-replace" class="modal-input"></select>
+                                </div>
+                                <button type="button" class="btn-merge" onclick="mergeStudios()">Exécuter la fusion</button>
+                                <p class="merge-hint">Tous les films du studio remplacé seront associés au studio gardé. Les tags du studio remplacé seront ajoutés (en minuscule) au studio gardé, sans doublon.</p>
+                            </div>
+                            <div id="merge-result" class="result-message" style="display:none;"></div>
+                        </div>
+
+                        <hr class="section-separator">
+
+                        <div class="test-conversion-section">
+                            <h4>Tester une conversion</h4>
+                            <div class="test-form">
+                                <input type="text" id="test-studio-name" class="modal-input" placeholder="Nom de studio à tester">
+                                <button type="button" class="btn-test-conversion" onclick="testConversion()">Tester</button>
+                            </div>
+                            <div id="test-result" class="test-result"></div>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <div class="modal-footer">
-                <button type="button" class="btn-cancel" onclick="closeStudioConversionsModal()">Fermer</button>
-            </div>
         </div>
     </div>
 @endsection
@@ -672,11 +521,12 @@
     <script>
         const CSRF = @json($csrf);
         const routes = {
+            adminIndex: @json(route('administration')),
             pendingFilms: @json(route('administration.pending-films')),
-            addFilm: @json(route('administration.add-film')),
             approve: @json(url('/administration/propositions')) + '/',
             reject: @json(url('/administration/propositions')) + '/',
             studiosByCategorie: @json(route('administration.studios-by-categorie')),
+            auteursByCategorie: @json(route('administration.auteurs-by-categorie')),
             autocompleteStudios: @json(route('administration.autocomplete.studios')),
             autocompleteAuteurs: @json(route('administration.autocomplete.auteurs')),
             deleteFilm: @json(url('/administration/films')) + '/',
@@ -692,6 +542,7 @@
         let summaryExpanded = false;
         let pendingFilmsCache = [];
         let currentPendingFilm = null;
+        let lastEmailSubjectType = null;
 
         document.addEventListener('DOMContentLoaded', function () {
             const summaryContent = document.getElementById('summary-content');
@@ -703,7 +554,6 @@
             updateNomFilmLabel();
             loadStudioConversions();
             handleEmailSubjectTypeChange();
-            handleEmailPopupToggle();
         });
 
         function toggleSummary() {
@@ -755,6 +605,9 @@
                     if (typeof updateStudios === 'function') {
                         updateStudios();
                     }
+                    if (typeof updateAuteurs === 'function') {
+                        updateAuteurs();
+                    }
                 }
             } else {
                 japanNotification.style.display = 'none';
@@ -762,7 +615,9 @@
         }
 
         function handleAnimeTypeChange() {
-            const animeType = document.getElementById('anime_type').value;
+            const animeTypeSelect = document.getElementById('anime_type');
+            if (!animeTypeSelect) return;
+            const animeType = animeTypeSelect.value;
             const ordreSuiteLabel = document.getElementById("ordre_suite_label");
             const ordreSuiteInput = document.getElementById("ordre_suite");
             const saisonLabel = document.getElementById("saison_label");
@@ -850,13 +705,17 @@
             }
         }
 
-        document.getElementById('categorie').addEventListener('change', handleCategoryChange);
+        const categorieEl = document.getElementById('categorie');
+        if (categorieEl) {
+            categorieEl.addEventListener('change', handleCategoryChange);
+        }
 
         function updateNomFilmLabel() {
-            const categorie = document.getElementById("categorie").value;
+            const categorieSelect = document.getElementById('categorie');
             const label = document.getElementById("nom_film_label");
             const input = document.getElementById("nom_film");
-            if (!label || !input) return;
+            if (!categorieSelect || !label || !input) return;
+            const categorie = categorieSelect.value;
 
             if (categorie === "Série" || categorie === "Série d'Animation") {
                 label.textContent = "Nom de la série :";
@@ -866,18 +725,21 @@
                 input.placeholder = "Nom du film (max 50 caractères)";
             }
         }
-        document.getElementById("categorie").addEventListener("change", updateNomFilmLabel);
+        if (categorieEl) {
+            categorieEl.addEventListener('change', updateNomFilmLabel);
+        }
 
         async function updateStudios() {
-            const categorie = document.getElementById("categorie").value;
+            const categorie = document.getElementById('categorie')?.value || '';
             const studioSelect = document.getElementById("studio");
             if (!studioSelect) return;
 
+            const current = studioSelect.value;
             studioSelect.innerHTML = "<option value=''>Sélectionnez un studio</option><option value='autre'>Autre</option><option value='1'>Inconnu</option>";
-            if (!categorie) return;
 
             try {
-                const res = await fetch(routes.studiosByCategorie + '?categorie=' + encodeURIComponent(categorie), {
+                const url = categorie ? (routes.studiosByCategorie + '?categorie=' + encodeURIComponent(categorie)) : routes.studiosByCategorie;
+                const res = await fetch(url, {
                     headers: { 'Accept': 'application/json' }
                 });
                 const data = await res.json();
@@ -892,18 +754,60 @@
                 }
             } catch (e) {
             }
+
+            if ([...studioSelect.options].some(o => o.value === current)) {
+                studioSelect.value = current;
+            }
+            if (typeof toggleAutreStudio === 'function') {
+                toggleAutreStudio();
+            }
+        }
+
+        async function updateAuteurs() {
+            const categorie = document.getElementById('categorie')?.value || '';
+            const auteurSelect = document.getElementById("auteur");
+            if (!auteurSelect) return;
+
+            const current = auteurSelect.value;
+            auteurSelect.innerHTML = "<option value=''>Sélectionnez un auteur</option><option value='autre'>Autre</option><option value='1'>Inconnu</option>";
+
+            try {
+                const url = categorie ? (routes.auteursByCategorie + '?categorie=' + encodeURIComponent(categorie)) : routes.auteursByCategorie;
+                const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+                const data = await res.json();
+                if (data.success && Array.isArray(data.auteurs)) {
+                    data.auteurs.forEach(a => {
+                        if (String(a.id) === '1') return;
+                        const option = document.createElement('option');
+                        option.value = a.id;
+                        option.textContent = a.nom;
+                        auteurSelect.appendChild(option);
+                    });
+                }
+            } catch (e) {
+            }
+
+            if ([...auteurSelect.options].some(o => o.value === current)) {
+                auteurSelect.value = current;
+            }
+            if (typeof toggleAutreChamp === 'function') {
+                toggleAutreChamp('auteur', 'nouveau_auteur');
+            }
         }
 
         function toggleAutreStudio() {
             const studioSelect = document.getElementById("studio");
             const autreStudioInput = document.getElementById("nouveau_studio");
+            const group = document.getElementById("nouveau_studio_group");
             if (!studioSelect || !autreStudioInput) return;
 
             if (studioSelect.value === "autre") {
+                if (group) group.style.display = "flex";
                 autreStudioInput.style.display = "block";
                 autreStudioInput.setAttribute("required", "required");
                 setupAutocompleteAdmin(autreStudioInput, 'studios');
             } else {
+                if (group) group.style.display = "none";
                 autreStudioInput.style.display = "none";
                 autreStudioInput.removeAttribute("required");
                 removeAutocompleteAdmin(autreStudioInput);
@@ -914,22 +818,24 @@
             const input = document.getElementById(inputId);
             const select = document.getElementById(selectId);
             if (!input || !select) return;
+            const group = document.getElementById(inputId + '_group');
 
             if (select.value === 'autre') {
+                if (group) group.style.display = 'flex';
                 input.style.display = 'block';
+                input.setAttribute('required', 'required');
                 if (inputId === 'nouveau_auteur') {
                     setupAutocompleteAdmin(input, 'auteurs');
                 }
             } else {
+                if (group) group.style.display = 'none';
                 input.style.display = 'none';
+                input.removeAttribute('required');
                 if (inputId === 'nouveau_auteur') {
                     removeAutocompleteAdmin(input);
                 }
             }
         }
-        document.getElementById('auteur').addEventListener('change', function () {
-            toggleAutreChamp('auteur', 'nouveau_auteur');
-        });
 
         function setupAutocompleteAdmin(input, type) {
             let timeout;
@@ -958,10 +864,11 @@
                 }
 
                 timeout = setTimeout(() => {
-                    const categorie = document.getElementById('categorie').value;
+                    const categorieEl = document.getElementById('categorie');
+                    const categorie = categorieEl ? categorieEl.value : '';
                     let url = type === 'studios' ? routes.autocompleteStudios : routes.autocompleteAuteurs;
                     url += '?search=' + encodeURIComponent(query);
-                    if (type === 'studios' && categorie) {
+                    if (categorie) {
                         url += '&categorie=' + encodeURIComponent(categorie);
                     }
                     fetch(url, { headers: { 'Accept': 'application/json' }})
@@ -1008,41 +915,34 @@
             }
         }
 
-        document.getElementById('filmForm').addEventListener('submit', function (event) {
-            event.preventDefault();
+        async function refreshFilmsList() {
+            const container = document.getElementById('liste-film');
+            if (!container) return;
+            const search = document.getElementById('searchBar');
+            const currentQuery = (search?.value || '').trim();
 
-            const formData = new FormData(this);
-            const sousGenresCoches = document.querySelectorAll('input[name="sous_genres[]"]:checked');
-            if (sousGenresCoches.length === 0) {
-                document.getElementById("sous-genre-warning").style.display = "block";
-                document.getElementById("sous-genre-warning").textContent = "⚠️ Vous devez sélectionner au moins un sous-genre.";
-                return;
+            const r = await fetch(routes.adminIndex, {
+                headers: { 'Accept': 'text/html', 'X-Requested-With': 'XMLHttpRequest' }
+            });
+            if (!r.ok) return;
+            const html = await r.text();
+            const doc = new DOMParser().parseFromString(html, 'text/html');
+            const next = doc.getElementById('liste-film');
+            if (!next) return;
+
+            container.innerHTML = next.innerHTML;
+            if (search) {
+                search.value = currentQuery;
+                if (currentQuery) filterFilms();
             }
-            document.getElementById("sous-genre-warning").style.display = "none";
+        }
 
-            fetch(routes.addFilm, {
-                method: 'POST',
-                body: formData,
-                headers: { 'Accept': 'application/json' }
-            })
-                .then(r => r.json())
-                .then(data => {
-                    const notificationDiv = document.getElementById("notification");
-                    if (data.success) {
-                        notificationDiv.innerHTML = '<div class="success">✅ ' + (data.message || 'Ajout réussi') + '</div>';
-                        this.reset();
-                        document.querySelectorAll("#sous-genres-container input[type='checkbox']").forEach(cb => cb.checked = false);
-                        updateCharCount();
-                        setTimeout(() => { location.reload(); }, 500);
-                    } else {
-                        const msg = data.error || (data.errors ? Object.values(data.errors)[0][0] : "Une erreur inconnue est survenue.");
-                        notificationDiv.innerHTML = '<div class="error">❌ ' + msg + '</div>';
-                    }
-                })
-                .catch(() => {
-                    document.getElementById('notification').innerHTML = '<div class="error">⚠️ Impossible de contacter le serveur.</div>';
-                });
-        });
+        const auteurEl = document.getElementById('auteur');
+        if (auteurEl) {
+            auteurEl.addEventListener('change', function () {
+                toggleAutreChamp('auteur', 'nouveau_auteur');
+            });
+        }
 
         function filterFilms() {
             const input = document.getElementById("searchBar");
@@ -1076,7 +976,7 @@
                 .then(data => {
                     if (data.success) {
                         customSuccess("Modification réussie !", "Modification du film");
-                        setTimeout(() => { location.reload(); }, 300);
+                        refreshFilmsList();
                     } else {
                         customAlert("Erreur : " + (data.error || "Aucune réponse"), "Erreur de modification");
                     }
@@ -1220,7 +1120,7 @@
                         customSuccess('Film approuvé avec succès !', 'Approbation réussie');
                         closePendingFilmModal();
                         loadPendingFilms();
-                        setTimeout(() => { location.reload(); }, 300);
+                        refreshFilmsList();
                     } else {
                         customAlert('Erreur: ' + (data.error || 'Erreur'), 'Erreur d\'approbation');
                     }
@@ -1475,7 +1375,7 @@
                 '',
                 `Pour la consulter, cliquez sur ce lien : ${routes.confidentialite}`,
                 '',
-                "Si un popup d'information est activé, il apparaîtra lors de votre prochaine visite.",
+                "Un popup d'information vous sera présenté lors de votre prochaine visite.",
                 '',
                 `Accéder au site : ${routes.home}`,
                 '',
@@ -1490,10 +1390,20 @@
             const customGroup = document.getElementById('email-subject-custom-group');
             const subjectCustom = document.getElementById('email-subject-custom');
             const message = document.getElementById('email-message');
+            const popupGroup = document.getElementById('email-popup-message-group');
+            const popupTextarea = document.getElementById('email-popup-message');
+            const prevType = lastEmailSubjectType;
 
             if (type === 'other') {
-                if (customGroup) customGroup.style.display = 'block';
+                if (customGroup) customGroup.style.display = 'grid';
                 if (subjectCustom) subjectCustom.required = true;
+                if (message && prevType === 'privacy_policy') {
+                    message.value = '';
+                }
+                if (popupGroup) {
+                    popupGroup.style.display = 'none';
+                    if (popupTextarea) popupTextarea.value = '';
+                }
             } else {
                 if (customGroup) customGroup.style.display = 'none';
                 if (subjectCustom) {
@@ -1503,7 +1413,10 @@
                 if (message) {
                     message.value = privacyPolicyEmailTemplate();
                 }
+                if (popupGroup) popupGroup.style.display = 'grid';
             }
+
+            lastEmailSubjectType = type;
         }
 
         function updateEmailPopupCharCount() {
@@ -1511,18 +1424,6 @@
             const counter = document.getElementById('emailPopupCharCount');
             if (!textarea || !counter) return;
             counter.textContent = `${textarea.value.length} / 500`;
-        }
-
-        function handleEmailPopupToggle() {
-            const enabled = document.getElementById('email-enable-popup')?.checked || false;
-            const group = document.getElementById('email-popup-message-group');
-            if (!group) return;
-            group.style.display = enabled ? 'block' : 'none';
-            if (!enabled) {
-                const textarea = document.getElementById('email-popup-message');
-                if (textarea) textarea.value = '';
-            }
-            updateEmailPopupCharCount();
         }
 
         async function doPublishPrivacyPolicy(messageText) {
@@ -1542,8 +1443,8 @@
             const subjectType = document.getElementById('email-subject-type')?.value || 'other';
             const subjectCustom = document.getElementById('email-subject-custom')?.value.trim() || '';
             const message = document.getElementById('email-message')?.value.trim() || '';
-            const enablePopup = document.getElementById('email-enable-popup')?.checked || false;
             const popupMessage = document.getElementById('email-popup-message')?.value.trim() || '';
+            const sendNotificationChecked = document.getElementById('email-send-notification')?.checked || false;
 
             const subject = subjectType === 'privacy_policy'
                 ? 'Mise à jour de la politique de confidentialité'
@@ -1587,8 +1488,8 @@
             }
 
             const sendNow = async () => {
-                if (enablePopup) {
-                    showEmailResult('Publication de la mise à jour...', 'info');
+                if (subjectType === 'privacy_policy') {
+                    showEmailResult('Activation du popup (mise à jour) et préparation de l’envoi...', 'info');
                     const publish = await doPublishPrivacyPolicy(popupMessage);
                     if (!publish?.success) {
                         showEmailResult(publish?.message || publish?.error || 'Erreur lors de la publication de la mise à jour.', 'error');
@@ -1613,6 +1514,27 @@
                     const data = await r.json();
                     if (data.success) {
                         showEmailResult(data.message, 'success');
+                        if (sendNotificationChecked) {
+                            const notifData = new FormData();
+                            notifData.append('recipient_type', recipientType);
+                            notifData.append('notification_title', subject);
+                            notifData.append('notification_message', message);
+                            if (recipientType === 'title') {
+                                notifData.append('user_title', document.getElementById('email-user-title').value);
+                            } else if (recipientType === 'specific') {
+                                notifData.append('search_type', document.getElementById('email-search-type').value);
+                                notifData.append('user_search', document.getElementById('email-user-search').value.trim());
+                            }
+                            try {
+                                const nr = await fetch(routes.sendNotification, { method: 'POST', body: notifData, headers: { 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' } });
+                                const ndata = await nr.json();
+                                if (!ndata.success) {
+                                    showEmailResult(ndata.message || ndata.error || 'Erreur lors de l\'envoi de la notification.', 'error');
+                                }
+                            } catch (e) {
+                                showEmailResult('Une erreur est survenue lors de l\'envoi de la notification.', 'error');
+                            }
+                        }
                         resetEmailForm();
                     } else {
                         showEmailResult(data.message || data.error || 'Erreur', 'error');
@@ -1622,12 +1544,7 @@
                 }
             };
 
-            if (enablePopup && window.customConfirm) {
-                window.customConfirm('Activer le popup (mise à jour) et envoyer l’e-mail ?', 'Confirmer')
-                    .then(ok => { if (ok) sendNow(); });
-            } else {
-                sendNow();
-            }
+            sendNow();
         }
 
         function showEmailResult(message, type) {
@@ -1659,7 +1576,6 @@
             if (popupGroup) popupGroup.style.display = 'none';
             if (result) result.style.display = 'none';
             handleEmailSubjectTypeChange();
-            handleEmailPopupToggle();
         }
 
         function openStudioConversionsModal() {
@@ -1672,14 +1588,7 @@
         }
 
         function loadStudioConversions() {
-            fetch(routes.studioConverter + '?action=list', { headers: { 'Accept': 'application/json' }})
-                .then(r => r.json())
-                .then(data => {
-                    if (data.success) {
-                        displayConversions(data.conversions || {});
-                    }
-                })
-                .catch(() => {});
+            refreshStudiosList();
         }
 
         function displayConversions(conversions) {
@@ -1785,6 +1694,252 @@
 
         function escapeHtml(s) {
             return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+        }
+        
+        let studiosIndex = [];
+        let selectedStudioId = null;
+        
+        function normalizeText(str) {
+            return String(str)
+                .toLowerCase()
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .replace(/\s+/g, ' ')
+                .trim();
+        }
+
+        function levenshtein(a, b) {
+            const s = normalizeText(a);
+            const t = normalizeText(b);
+            if (s === t) return 0;
+            if (s.length === 0) return t.length;
+            if (t.length === 0) return s.length;
+            const v0 = new Array(t.length + 1);
+            const v1 = new Array(t.length + 1);
+            for (let i = 0; i < v0.length; i++) v0[i] = i;
+            for (let i = 0; i < s.length; i++) {
+                v1[0] = i + 1;
+                for (let j = 0; j < t.length; j++) {
+                    const cost = s[i] === t[j] ? 0 : 1;
+                    v1[j + 1] = Math.min(v1[j] + 1, v0[j + 1] + 1, v0[j] + cost);
+                }
+                for (let j = 0; j < v0.length; j++) v0[j] = v1[j];
+            }
+            return v1[t.length];
+        }
+
+        async function refreshStudiosList() {
+            try {
+                const res = await fetch(routes.studioConverter + '?action=list_studios', { headers: { 'Accept': 'application/json' }});
+                const data = await res.json();
+                if (!data.success || !Array.isArray(data.studios)) return;
+                studiosIndex = data.studios;
+                renderStudiosList(studiosIndex);
+                populateMergeSelects(studiosIndex);
+                const search = document.getElementById('studio-search');
+                updateStudioSuggestions(search ? search.value : '');
+            } catch (e) {}
+        }
+
+        function renderStudiosList(rows) {
+            const list = document.getElementById('studio-list');
+            if (!list) return;
+            list.innerHTML = '';
+            rows.forEach(s => {
+                const div = document.createElement('div');
+                div.className = 'studio-row';
+                if (selectedStudioId !== null && Number(s.id) === Number(selectedStudioId)) {
+                    div.classList.add('active');
+                }
+                div.textContent = s.nom;
+                div.dataset.id = s.id;
+                div.addEventListener('click', () => selectStudio(s.id, s.nom));
+                list.appendChild(div);
+            });
+            const search = document.getElementById('studio-search');
+            if (search && !search.dataset.bound) {
+                search.addEventListener('input', () => {
+                    const q = normalizeText(search.value);
+                    const filtered = q === '' ? studiosIndex : studiosIndex.filter(s => normalizeText(s.nom).includes(q));
+                    renderStudiosList(filtered);
+                    updateStudioSuggestions(search.value);
+                });
+                search.dataset.bound = '1';
+            }
+        }
+
+        function updateStudioSuggestions(query) {
+            const root = document.getElementById('studio-suggestions');
+            if (!root) return;
+            const q = normalizeText(query);
+            if (q.length < 2 || studiosIndex.length === 0) {
+                root.innerHTML = '';
+                return;
+            }
+            const ranked = studiosIndex
+                .map(s => {
+                    const name = String(s.nom || '');
+                    const dist = levenshtein(q, name);
+                    const maxLen = Math.max(q.length, normalizeText(name).length, 1);
+                    const score = 1 - dist / maxLen;
+                    return { id: s.id, nom: name, score };
+                })
+                .filter(x => x.score >= 0.55)
+                .sort((a, b) => b.score - a.score)
+                .slice(0, 6);
+
+            if (ranked.length === 0) {
+                root.innerHTML = '';
+                return;
+            }
+
+            root.innerHTML = '';
+            const title = document.createElement('div');
+            title.className = 'studio-suggestions-title';
+            title.textContent = 'Similaires :';
+            root.appendChild(title);
+
+            const list = document.createElement('div');
+            list.className = 'studio-suggestions-list';
+            ranked.forEach(s => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'studio-suggestion';
+                btn.textContent = s.nom;
+                btn.addEventListener('click', () => selectStudio(s.id, s.nom));
+                list.appendChild(btn);
+            });
+            root.appendChild(list);
+        }
+
+        async function selectStudio(id, nom) {
+            selectedStudioId = id;
+            const title = document.getElementById('selected-studio-title');
+            if (title) title.textContent = 'Studio : ' + nom;
+            const keep = document.getElementById('merge-keep');
+            if (keep) keep.value = String(id);
+            const search = document.getElementById('studio-search');
+            const q = search ? normalizeText(search.value) : '';
+            const rows = q === '' ? studiosIndex : studiosIndex.filter(s => normalizeText(s.nom).includes(q));
+            renderStudiosList(rows);
+            updateStudioSuggestions(nom);
+            try {
+                const res = await fetch(routes.studioConverter + '?action=get_studio_conversions&studio_id=' + encodeURIComponent(id), { headers: { 'Accept': 'application/json' }});
+                const data = await res.json();
+                if (!data.success) return;
+                renderStudioTags((data.conversion && Array.isArray(data.conversion.patterns)) ? data.conversion.patterns : []);
+            } catch (e) {}
+        }
+
+        function renderStudioTags(patterns) {
+            const tags = document.getElementById('studio-tags');
+            if (!tags) return;
+            tags.innerHTML = '';
+            const unique = Array.from(new Set(patterns.map(p => String(p).toLowerCase().trim()).filter(p => p !== '')));
+            if (unique.length === 0) {
+                const empty = document.createElement('p');
+                empty.textContent = 'Aucune variante. Ajoutez des tags ci-dessous.';
+                tags.appendChild(empty);
+                return;
+            }
+            unique.forEach(p => {
+                const tag = document.createElement('span');
+                tag.className = 'tag';
+                tag.textContent = p;
+                const close = document.createElement('button');
+                close.className = 'tag-close';
+                close.textContent = '×';
+                close.title = 'Supprimer';
+                close.addEventListener('click', () => removeStudioTag(p));
+                tag.appendChild(close);
+                tags.appendChild(tag);
+            });
+        }
+
+        async function addStudioTag() {
+            const input = document.getElementById('new-tag-input');
+            if (!input || !selectedStudioId) return;
+            const val = input.value.toLowerCase().trim();
+            if (val === '') return;
+            try {
+                const res = await fetch(routes.studioConverter, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': CSRF },
+                    body: JSON.stringify({ action: 'add_pattern', studio_id: selectedStudioId, pattern: val })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    renderStudioTags((data.conversion && Array.isArray(data.conversion.patterns)) ? data.conversion.patterns : []);
+                    input.value = '';
+                }
+            } catch (e) {}
+        }
+
+        async function removeStudioTag(val) {
+            if (!selectedStudioId) return;
+            try {
+                const res = await fetch(routes.studioConverter, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': CSRF },
+                    body: JSON.stringify({ action: 'remove_pattern', studio_id: selectedStudioId, pattern: val })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    renderStudioTags((data.conversion && Array.isArray(data.conversion.patterns)) ? data.conversion.patterns : []);
+                }
+            } catch (e) {}
+        }
+
+        function populateMergeSelects(rows) {
+            const keep = document.getElementById('merge-keep');
+            const replace = document.getElementById('merge-replace');
+            if (!keep || !replace) return;
+            const options = rows.map(s => `<option value="${s.id}">${s.nom}</option>`).join('');
+            keep.innerHTML = options;
+            replace.innerHTML = options;
+        }
+
+        async function mergeStudios() {
+            const keep = document.getElementById('merge-keep');
+            const replace = document.getElementById('merge-replace');
+            const result = document.getElementById('merge-result');
+            if (!keep || !replace) return;
+            const keepId = parseInt(keep.value, 10);
+            const replaceId = parseInt(replace.value, 10);
+            if (!keepId || !replaceId || keepId === replaceId) {
+                if (result) {
+                    result.style.display = 'block';
+                    result.textContent = 'Sélection invalide.';
+                }
+                return;
+            }
+            try {
+                const res = await fetch(routes.studioConverter, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': CSRF },
+                    body: JSON.stringify({ action: 'merge_studios', keep_id: keepId, replace_id: replaceId })
+                });
+                const data = await res.json();
+                if (result) {
+                    result.style.display = 'block';
+                    result.textContent = data.success ? 'Fusion effectuée.' : (data.error || 'Erreur lors de la fusion.');
+                }
+                if (data.success) {
+                    await refreshStudiosList();
+                    if (selectedStudioId === replaceId) {
+                        selectedStudioId = keepId;
+                    }
+                    if (selectedStudioId) {
+                        const sel = studiosIndex.find(s => s.id === selectedStudioId);
+                        if (sel) selectStudio(sel.id, sel.nom);
+                    }
+                }
+            } catch (e) {
+                if (result) {
+                    result.style.display = 'block';
+                    result.textContent = 'Erreur réseau.';
+                }
+            }
         }
     </script>
 @endsection

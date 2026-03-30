@@ -24,7 +24,7 @@
 
             <form id="filmForm" action="{{ route('proposer-film.store') }}" method="post" enctype="multipart/form-data">
                 @csrf
-                <div class="form-section two-columns">
+                <div class="form-section three-columns">
                     <div class="form-group">
                         <label id="nom_film_label" for="nom_film">Nom du film :</label>
                         <input type="text" id="nom_film" name="nom_film" placeholder="Nom du film (max 50 caractères)" maxlength="50" required value="{{ old('nom_film') }}">
@@ -40,6 +40,11 @@
                         </select>
                         @error('categorie')<div id="message-container" class="error"><p>{{ $message }}</p></div>@enderror
                     </div>
+                    <div class="form-group">
+                        <label id="date_sortie_label" for="date_sortie">Année de sortie :</label>
+                        <input type="number" id="date_sortie" name="date_sortie" min="1900" max="2099" step="1" value="{{ old('date_sortie', date('Y')) }}" required>
+                        @error('date_sortie')<div id="message-container" class="error"><p>{{ $message }}</p></div>@enderror
+                    </div>
                 </div>
 
                 <div id="anime-type-section" class="form-section two-columns" style="display:none;">
@@ -53,30 +58,41 @@
                     </div>
                 </div>
 
-                <div class="form-section full-width">
+                <div class="form-section proposer-description-layout">
                     <div class="form-group">
                         <label id="description_label" for="description">Description :</label>
                         <textarea id="description" name="description" rows="4" cols="50" placeholder="Pas de description" maxlength="400" oninput="updateCharCount()">{{ old('description') }}</textarea>
                         <span id="charCount" class="description-compteur">0 / 400</span>
                         @error('description')<div id="message-container" class="error"><p>{{ $message }}</p></div>@enderror
                     </div>
-                </div>
-
-                <div class="form-section three-columns">
-                    <div class="form-group">
-                        <label id="date_sortie_label" for="date_sortie">Année de sortie :</label>
-                        <input type="number" id="date_sortie" name="date_sortie" min="1900" max="2099" step="1" value="{{ old('date_sortie', date('Y')) }}" required>
-                        @error('date_sortie')<div id="message-container" class="error"><p>{{ $message }}</p></div>@enderror
-                    </div>
-                    <div class="form-group">
-                        <label id="image_label" for="image">Image du film :</label>
-                        <input type="file" id="image" name="image" accept="image/*" required>
-                        @error('image')<div id="message-container" class="error"><p>{{ $message }}</p></div>@enderror
-                    </div>
-                    <div class="form-group">
-                        <label id="ordre_suite_label" for="ordre_suite">Ordre (Suite?) :</label>
-                        <input type="number" id="ordre_suite" name="ordre_suite" min="1" max="25" step="1" placeholder="1" value="{{ old('ordre_suite') }}">
-                        @error('ordre_suite')<div id="message-container" class="error"><p>{{ $message }}</p></div>@enderror
+                    <div class="stacked-fields">
+                        <div class="form-group">
+                            <label id="pays_label" for="pays">Pays :</label>
+                            <select id="pays" name="pays_id" required onchange="handlePaysChange()">
+                                <option value="">Sélectionnez un pays</option>
+                                @foreach($pays as $id => $nom)
+                                    <option value="{{ $id }}" @selected((string) old('pays_id') === (string) $id)>{{ $nom }}</option>
+                                @endforeach
+                            </select>
+                            <div id="japan-notification" class="japan-notification" style="display: none;">
+                                <span class="notification-icon">ℹ️</span>
+                                <span class="notification-text">Les films et séries d'animation japonaises appartiennent à la catégorie "Anime".</span>
+                            </div>
+                            @error('pays_id')<div id="message-container" class="error"><p>{{ $message }}</p></div>@enderror
+                        </div>
+                        <div class="form-group">
+                            <label id="image_label" for="image">Image du film :</label>
+                            <input type="file" id="image" name="image" accept="image/*">
+                            @error('image')<div id="message-container" class="error"><p>{{ $message }}</p></div>@enderror
+                            <div class="or-separator">ou</div>
+                            <input type="url" id="image_url" class="image-url-input" name="image_url" placeholder="Lien de l'image (http...)" value="{{ old('image_url') }}">
+                            @error('image_url')<div id="message-container" class="error"><p>{{ $message }}</p></div>@enderror
+                        </div>
+                        <div class="form-group">
+                            <label id="ordre_suite_label" for="ordre_suite">Ordre (Suite?) :</label>
+                            <input type="number" id="ordre_suite" name="ordre_suite" min="1" max="25" step="1" placeholder="1" value="{{ old('ordre_suite') }}">
+                            @error('ordre_suite')<div id="message-container" class="error"><p>{{ $message }}</p></div>@enderror
+                        </div>
                     </div>
                 </div>
 
@@ -101,9 +117,7 @@
                             <option value="autre" @selected(old('studio_id') === 'autre')>Autre</option>
                             <option value="1" @selected((string) old('studio_id') === '1')>Inconnu</option>
                         </select>
-                        <input type="text" id="nouveau_studio" name="nouveau_studio" placeholder="Nom du studio" maxlength="30" style="display:none;" value="{{ old('nouveau_studio') }}">
                         @error('studio_id')<div id="message-container" class="error"><p>{{ $message }}</p></div>@enderror
-                        @error('nouveau_studio')<div id="message-container" class="error"><p>{{ $message }}</p></div>@enderror
                     </div>
                     <div class="form-group">
                         <label id="auteur_label" for="auteur">Auteur :</label>
@@ -116,26 +130,20 @@
                                 <option value="{{ $id }}" @selected((string) old('auteur_id') === (string) $id)>{{ $nom }}</option>
                             @endforeach
                         </select>
-                        <input type="text" id="nouveau_auteur" name="nouveau_auteur" placeholder="Nom de l'auteur" maxlength="30" style="display:none;" value="{{ old('nouveau_auteur') }}">
                         @error('auteur_id')<div id="message-container" class="error"><p>{{ $message }}</p></div>@enderror
-                        @error('nouveau_auteur')<div id="message-container" class="error"><p>{{ $message }}</p></div>@enderror
                     </div>
                 </div>
 
-                <div class="form-section full-width">
-                    <div class="form-group">
-                        <label id="pays_label" for="pays">Pays :</label>
-                        <select id="pays" name="pays_id" required onchange="handlePaysChange()">
-                            <option value="">Sélectionnez un pays</option>
-                            @foreach($pays as $id => $nom)
-                                <option value="{{ $id }}" @selected((string) old('pays_id') === (string) $id)>{{ $nom }}</option>
-                            @endforeach
-                        </select>
-                        <div id="japan-notification" class="japan-notification" style="display: none;">
-                            <span class="notification-icon">ℹ️</span>
-                            <span class="notification-text">Les films et séries d'animation japonaises appartiennent à la catégorie "Anime".</span>
-                        </div>
-                        @error('pays_id')<div id="message-container" class="error"><p>{{ $message }}</p></div>@enderror
+                <div class="form-section two-columns other-inputs-row">
+                    <div class="form-group" id="nouveau_studio_group" style="display:none;">
+                        <label for="nouveau_studio">Studio (autre) :</label>
+                        <input type="text" id="nouveau_studio" name="nouveau_studio" placeholder="Nom du studio" maxlength="30" value="{{ old('nouveau_studio') }}">
+                        @error('nouveau_studio')<div id="message-container" class="error"><p>{{ $message }}</p></div>@enderror
+                    </div>
+                    <div class="form-group" id="nouveau_auteur_group" style="display:none;">
+                        <label for="nouveau_auteur">Auteur (autre) :</label>
+                        <input type="text" id="nouveau_auteur" name="nouveau_auteur" placeholder="Nom de l'auteur" maxlength="30" value="{{ old('nouveau_auteur') }}">
+                        @error('nouveau_auteur')<div id="message-container" class="error"><p>{{ $message }}</p></div>@enderror
                     </div>
                 </div>
 
@@ -187,11 +195,14 @@
 @endsection
 
 @section('scripts')
+    <script src="{{ asset('scripts-js/tmdb-autofill.js') }}" defer></script>
     <script>
         const proposerRoutes = {
             studios: @json(route('proposer-film.studios')),
             auteurs: @json(route('proposer-film.auteurs')),
+            tmdbAutofill: @json(route('api.tmdb.autofill')),
         };
+        window.tmdbAutofillRoute = proposerRoutes.tmdbAutofill;
 
         document.addEventListener('DOMContentLoaded', function () {
             updateCharCount();
@@ -226,6 +237,18 @@
             handlePaysChange();
             updateStudios();
             updateAuteurs();
+            @if(session('status'))
+                const form = document.getElementById('filmForm');
+                if (form) form.reset();
+                updateCharCount();
+                handleCategoryChange();
+                updateNomFilmLabel();
+                toggleAutreStudio();
+                toggleAutreAuteur();
+                handlePaysChange();
+                updateStudios();
+                updateAuteurs();
+            @endif
         });
 
         function updateCharCount() {
@@ -333,13 +356,14 @@
         function toggleAutreStudio() {
             const studioSelect = document.getElementById("studio");
             const autreStudioInput = document.getElementById("nouveau_studio");
-            if (!studioSelect || !autreStudioInput) return;
+            const group = document.getElementById("nouveau_studio_group");
+            if (!studioSelect || !autreStudioInput || !group) return;
 
             if (studioSelect.value === "autre") {
-                autreStudioInput.style.display = "block";
+                group.style.display = "flex";
                 autreStudioInput.setAttribute("required", "required");
             } else {
-                autreStudioInput.style.display = "none";
+                group.style.display = "none";
                 autreStudioInput.removeAttribute("required");
             }
         }
@@ -347,13 +371,14 @@
         function toggleAutreAuteur() {
             const auteurSelect = document.getElementById("auteur");
             const autreAuteurInput = document.getElementById("nouveau_auteur");
-            if (!auteurSelect || !autreAuteurInput) return;
+            const group = document.getElementById("nouveau_auteur_group");
+            if (!auteurSelect || !autreAuteurInput || !group) return;
 
             if (auteurSelect.value === "autre") {
-                autreAuteurInput.style.display = "block";
+                group.style.display = "flex";
                 autreAuteurInput.setAttribute("required", "required");
             } else {
-                autreAuteurInput.style.display = "none";
+                group.style.display = "none";
                 autreAuteurInput.removeAttribute("required");
             }
         }

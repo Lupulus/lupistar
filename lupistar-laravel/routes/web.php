@@ -18,6 +18,7 @@ use App\Http\Controllers\MonCompteController;
 use App\Http\Controllers\NotificationsController;
 use App\Http\Controllers\PasswordController;
 use App\Http\Controllers\ProposerFilmController;
+use App\Http\Controllers\TmdbController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [AccueilController::class, 'index'])->name('accueil');
@@ -33,6 +34,8 @@ Route::prefix('api')->group(function () {
     Route::get('/ma-liste/filters', [ListeApiController::class, 'myFilters'])->name('api.ma-liste.filters');
     Route::get('/ma-liste/stats', [ListeApiController::class, 'myStats'])->name('api.ma-liste.stats');
     Route::get('/ma-liste/films', [ListeApiController::class, 'myFilms'])->name('api.ma-liste.films');
+
+    Route::get('/tmdb/autofill', [TmdbController::class, 'autofill'])->name('api.tmdb.autofill');
 });
 
 Route::get('/login', [AuthController::class, 'showLogin'])->name('login.show');
@@ -50,8 +53,10 @@ Route::post('/administration/add-film', [AdminController::class, 'addFilm'])->na
 Route::post('/administration/films/{id}/modify', [AdminController::class, 'modifyFilm'])->name('administration.films.modify');
 Route::post('/administration/films/{id}/delete', [AdminController::class, 'deleteFilm'])->name('administration.films.delete');
 Route::get('/administration/studios', [AdminController::class, 'studiosByCategorie'])->name('administration.studios-by-categorie');
+Route::get('/administration/auteurs', [AdminController::class, 'auteursByCategorie'])->name('administration.auteurs-by-categorie');
 Route::get('/administration/autocomplete/studios', [AdminController::class, 'autocompleteStudios'])->name('administration.autocomplete.studios');
 Route::get('/administration/autocomplete/auteurs', [AdminController::class, 'autocompleteAuteurs'])->name('administration.autocomplete.auteurs');
+Route::post('/administration/sous-genres/sync', [AdminController::class, 'syncSousGenresFromTmdb'])->name('administration.sous-genres.sync');
 Route::post('/administration/send-notification', [AdminController::class, 'sendNotification'])->name('administration.send-notification');
 Route::post('/administration/send-email', [AdminController::class, 'sendEmail'])->name('administration.send-email');
 Route::post('/administration/privacy-policy/publish', [AdminController::class, 'publishPrivacyPolicy'])->name('administration.privacy-policy.publish');
@@ -81,6 +86,7 @@ Route::get('/mon-compte', [MonCompteController::class, 'show'])->name('mon-compt
 Route::post('/mon-compte/email', [MonCompteController::class, 'updateEmail'])->name('mon-compte.update-email');
 Route::post('/mon-compte/password', [MonCompteController::class, 'updatePassword'])->name('mon-compte.update-password');
 Route::post('/mon-compte/photo', [MonCompteController::class, 'uploadCroppedPhoto'])->name('mon-compte.upload-photo');
+Route::post('/mon-compte/promotion', [MonCompteController::class, 'demanderPromotion'])->name('mon-compte.promotion');
 Route::get('/preferences/categories-order', [MonCompteController::class, 'getCategoriesOrder'])->name('preferences.categories-order.get');
 Route::post('/preferences/categories-order', [MonCompteController::class, 'saveCategoriesOrder'])->name('preferences.categories-order.save');
 Route::get('/proposer-film', [ProposerFilmController::class, 'show'])->name('proposer-film.show');

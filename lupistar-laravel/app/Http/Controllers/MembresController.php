@@ -170,6 +170,7 @@ class MembresController extends Controller
         $id = is_numeric($request->input('id')) ? (int) $request->input('id') : 0;
         $type = (string) $request->input('type', '');
         $increment = is_numeric($request->input('increment')) ? (int) $request->input('increment') : 0;
+        $reason = trim((string) $request->input('reason', ''));
 
         if ($id <= 0 || ! in_array($type, ['avertissements', 'recompenses'], true) || ! in_array($increment, [-1, 1], true)) {
             return response()->json(['success' => false, 'message' => 'Paramètres invalides'], 422);
@@ -188,6 +189,20 @@ class MembresController extends Controller
         $newValue = max(0, $current + $increment);
 
         DB::table('membres')->where('id', $id)->update([$type => $newValue]);
+
+        if ($type === 'avertissements') {
+            $message = $increment > 0
+                ? '⚠️ Vous avez reçu un avertissement'.($reason !== '' ? ' : '.$reason : '').'. (Total: '.$newValue.' avertissement'.($newValue > 1 ? 's' : '').')'
+                : '✅ Un de vos avertissements a été retiré'.($reason !== '' ? ' : '.$reason : '').'. (Total: '.$newValue.' avertissement'.($newValue > 1 ? 's' : '').')';
+
+            $this->notifyUser($id, 'Avertissement', $message, 'warning_admin');
+        } else {
+            $message = $increment > 0
+                ? '🎁 Vous avez reçu '.abs($increment).' récompense'.(abs($increment) > 1 ? 's' : '').($reason !== '' ? ' : '.$reason : '').'. (Total: '.$newValue.')'
+                : '🎁 '.abs($increment).' récompense'.(abs($increment) > 1 ? 's' : '').' a été retirée'.($reason !== '' ? ' : '.$reason : '').'. (Total: '.$newValue.')';
+
+            $this->notifyUser($id, 'Récompenses', $message, 'reward_admin');
+        }
 
         return response()->json(['success' => true, 'newValue' => $newValue]);
     }

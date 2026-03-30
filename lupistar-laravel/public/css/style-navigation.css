@@ -321,6 +321,25 @@ footer p {
     font-size: 0.9rem;
 }
 
+.tmdb-credit {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    opacity: 0.85;
+    margin-top: 6px;
+}
+
+.tmdb-credit p {
+    margin: 0;
+}
+
+.tmdb-credit img {
+    height: 0.75rem;
+    width: auto;
+}
+
 footer nav {
     margin-top: 10px;
 }

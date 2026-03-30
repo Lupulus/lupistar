@@ -175,8 +175,18 @@ class ListeService
         }
 
         $note = trim((string) ($filters['note'] ?? ''));
-        if ($note !== '' && is_numeric($note)) {
-            $query->where('films.note_moyenne', '>=', (float) $note);
+        if ($note === 'sans_note') {
+            if ($onlyMyList) {
+                $query->whereNull('mfl.note');
+            } else {
+                $query->whereNull('films.note_moyenne');
+            }
+        } elseif ($note !== '' && is_numeric($note)) {
+            if ($onlyMyList) {
+                $query->where('mfl.note', '>=', (float) $note);
+            } else {
+                $query->where('films.note_moyenne', '>=', (float) $note);
+            }
         }
 
         $pays = trim((string) ($filters['pays'] ?? ''));

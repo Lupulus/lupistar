@@ -96,12 +96,12 @@
                     <span class="stat-label">Films vus</span>
                 </div>
                 <div class="stat-card">
-                    <span class="stat-number">{{ $best_author ?? 'Aucun' }}</span>
-                    <span class="stat-label">Auteur favori</span>
-                </div>
-                <div class="stat-card">
                     <span class="stat-number">{{ $avg_rating !== null ? number_format($avg_rating, 1) : '0.0' }}/10</span>
                     <span class="stat-label">Note moyenne</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-number">{{ $rated_films }}</span>
+                    <span class="stat-label">Films notés</span>
                 </div>
                 <div class="stat-card">
                     <span class="stat-number">{{ $approved_films }}</span>

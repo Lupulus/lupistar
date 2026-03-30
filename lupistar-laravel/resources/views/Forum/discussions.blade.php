@@ -206,7 +206,8 @@
                 const year = item.date_sortie ? ` (${item.date_sortie})` : '';
                 div.textContent = `${item.nom_film}${year}`;
                 div.addEventListener('click', () => {
-                    const token = `[film:${item.id}:${item.nom_film}]`;
+                    const label = `${item.nom_film}${year}`;
+                    const token = `[film:${item.id}:${label}]`;
                     insertRaw(textarea, token);
                     closeFilmModal();
                 });
