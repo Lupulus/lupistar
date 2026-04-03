@@ -104,12 +104,14 @@ class CustomPopupManager {
                 cancelText = 'Annuler',
                 showCancel = true,
                 confirmClass = 'primary',
-                icon = '?'
+                icon = '?',
+                render = null
             } = options;
 
             // Mettre à jour le contenu
             document.getElementById('custom-popup-title').textContent = title;
-            document.getElementById('custom-popup-message').textContent = message;
+            const messageElement = document.getElementById('custom-popup-message');
+            messageElement.textContent = message;
             
             // Mettre à jour l'icône
             const iconElement = document.getElementById('custom-popup-icon');
@@ -135,8 +137,9 @@ class CustomPopupManager {
             const buttonsContainer = document.getElementById('custom-popup-buttons');
             buttonsContainer.innerHTML = '';
 
+            let cancelBtn = null;
             if (showCancel) {
-                const cancelBtn = document.createElement('button');
+                cancelBtn = document.createElement('button');
                 cancelBtn.className = 'custom-popup-btn secondary';
                 cancelBtn.textContent = cancelText;
                 cancelBtn.onclick = () => this.close(false);
@@ -148,6 +151,15 @@ class CustomPopupManager {
             confirmBtn.textContent = confirmText;
             confirmBtn.onclick = () => this.close(true);
             buttonsContainer.appendChild(confirmBtn);
+
+            if (typeof render === 'function') {
+                render({
+                    messageElement,
+                    confirmBtn,
+                    cancelBtn,
+                    close: (value) => this.close(value)
+                });
+            }
 
             // Afficher la popup
             this.overlay.classList.add('show');
@@ -226,6 +238,85 @@ class CustomPopupManager {
             confirmClass: 'danger'
         });
     }
+
+    prompt(message, title = 'Saisie', options = {}) {
+        const {
+            defaultValue = '',
+            placeholder = '',
+            inputType = 'text',
+            validator = null,
+            confirmText = 'Valider'
+        } = options || {};
+
+        return this.show({
+            type: 'confirm',
+            title,
+            message: '',
+            confirmText,
+            cancelText: 'Annuler',
+            showCancel: true,
+            confirmClass: 'primary',
+            render: ({ messageElement, confirmBtn, cancelBtn, close }) => {
+                messageElement.innerHTML = '';
+
+                const wrapper = document.createElement('div');
+                wrapper.className = 'custom-popup-field';
+
+                const text = document.createElement('div');
+                text.textContent = message;
+
+                const input = document.createElement('input');
+                input.className = 'custom-popup-input';
+                input.type = inputType;
+                input.value = defaultValue || '';
+                input.placeholder = placeholder || '';
+                input.autocomplete = 'off';
+
+                const error = document.createElement('div');
+                error.className = 'custom-popup-error';
+                error.style.display = 'none';
+
+                const validate = () => {
+                    const v = (input.value || '').trim();
+                    if (typeof validator === 'function') {
+                        const msg = (validator(v) || '').trim();
+                        if (msg) {
+                            error.textContent = msg;
+                            error.style.display = 'block';
+                            input.focus();
+                            return null;
+                        }
+                    }
+                    error.style.display = 'none';
+                    return v;
+                };
+
+                confirmBtn.onclick = () => {
+                    const v = validate();
+                    if (v === null) return;
+                    close(v);
+                };
+
+                if (cancelBtn) cancelBtn.onclick = () => close(null);
+
+                input.addEventListener('keydown', (e) => {
+                    if (e.key !== 'Enter') return;
+                    e.preventDefault();
+                    confirmBtn.click();
+                });
+
+                wrapper.appendChild(text);
+                wrapper.appendChild(input);
+                wrapper.appendChild(error);
+                messageElement.appendChild(wrapper);
+
+                setTimeout(() => {
+                    input.focus();
+                    input.select();
+                }, 120);
+            }
+        }).then((v) => (typeof v === 'string' ? v : null));
+    }
 }
 
 // Initialiser le gestionnaire global
@@ -237,3 +328,4 @@ window.customConfirm = (message, title) => window.popupManager.confirm(message, 
 window.customAlert = (message, title) => window.popupManager.alert(message, title);
 window.customSuccess = (message, title) => window.popupManager.success(message, title);
 window.customDanger = (message, title) => window.popupManager.danger(message, title);
+window.customPrompt = (message, title, options) => window.popupManager.prompt(message, title, options);

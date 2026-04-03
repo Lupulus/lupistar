@@ -23,7 +23,7 @@ class SousGenresTableSeeder extends Seeder
             ],
             1 => [
                 'id' => 11,
-                'nom' => 'Animation familiale',
+                'nom' => 'Familial',
             ],
             2 => [
                 'id' => 13,
@@ -116,6 +116,10 @@ class SousGenresTableSeeder extends Seeder
             24 => [
                 'id' => 8,
                 'nom' => 'Thriller',
+            ],
+            25 => [
+                'id' => 26,
+                'nom' => 'Western',
             ],
         ]);
 

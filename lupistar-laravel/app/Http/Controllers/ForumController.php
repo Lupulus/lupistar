@@ -10,6 +10,7 @@ class ForumController extends Controller
 {
     public function index(Request $request)
     {
+        $this->ensureForumAccess($request);
         $this->ensureDefaultCategories();
 
         $titre = (string) $request->session()->get('titre', 'Membre');
@@ -145,6 +146,7 @@ class ForumController extends Controller
                             'admin_only' => $cat['admin_only'],
                             'active' => $cat['active'],
                         ]);
+
                     continue;
                 }
 
@@ -154,6 +156,7 @@ class ForumController extends Controller
             $mongo->table('forum_categories')
                 ->whereNotIn('nom', $allowedNames)
                 ->update(['active' => 0]);
+
             return;
         }
 
@@ -170,6 +173,7 @@ class ForumController extends Controller
                         'admin_only' => $cat['admin_only'],
                         'active' => $cat['active'],
                     ]);
+
                 continue;
             }
 
@@ -213,5 +217,35 @@ class ForumController extends Controller
         }
 
         return null;
+    }
+
+    private function ensureForumAccess(Request $request): void
+    {
+        $userId = $request->session()->get('user_id');
+        $userId = is_numeric($userId) ? (int) $userId : 0;
+        if ($userId <= 0) {
+            return;
+        }
+
+        if (in_array('Forum Accès Off', $this->currentRestrictions($request), true)) {
+            abort(403);
+        }
+    }
+
+    private function currentRestrictions(Request $request): array
+    {
+        $userId = $request->session()->get('user_id');
+        $userId = is_numeric($userId) ? (int) $userId : 0;
+        if ($userId <= 0) {
+            return [];
+        }
+
+        $raw = (string) (DB::table('membres')->where('id', $userId)->value('restriction') ?? '');
+        $list = array_values(array_filter(array_map(
+            static fn ($v) => trim((string) $v),
+            explode(',', $raw)
+        ), static fn ($v) => $v !== '' && $v !== 'Aucune'));
+
+        return array_values(array_unique($list));
     }
 }

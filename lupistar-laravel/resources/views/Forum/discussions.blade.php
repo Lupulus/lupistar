@@ -7,6 +7,12 @@
 @section('content')
     @php
         $isLoggedIn = (bool) session('user_id');
+        $restrictionList = [];
+        if ($isLoggedIn && is_numeric(session('user_id'))) {
+            $raw = (string) (\DB::table('membres')->where('id', (int) session('user_id'))->value('restriction') ?? '');
+            $restrictionList = array_values(array_filter(array_map(static fn ($v) => trim((string) $v), explode(',', $raw)), static fn ($v) => $v !== '' && $v !== 'Aucune'));
+        }
+        $canWrite = $isLoggedIn && !in_array('Forum Écriture Off', $restrictionList, true);
     @endphp
 
     <div class="forum-page">
@@ -33,7 +39,9 @@
                     <input type="hidden" name="film_id" value="{{ (int) $film_id }}">
                 @endif
                 <button class="forum-button secondary" type="submit">Filtrer</button>
-                <a class="forum-button" href="#new-topic">Nouveau topic</a>
+                @if($canWrite)
+                    <a class="forum-button" href="#new-topic">Nouveau topic</a>
+                @endif
             </form>
         </div>
 
@@ -44,9 +52,36 @@
                         <h3 class="forum-topic-title">
                             {{ $d->pinned ? '📌 ' : '' }}{{ $d->locked ? '🔒 ' : '' }}{{ $d->titre }}
                         </h3>
+                        @php
+                            $createdIso = '';
+                            $createdText = '';
+                            $src = $d->created_at ?? null;
+                            try {
+                                if ($src instanceof \DateTimeInterface) {
+                                    $createdIso = $src->format(\DateTimeInterface::ATOM);
+                                    $createdText = \Carbon\Carbon::instance($src)->locale('fr')->diffForHumans();
+                                } elseif (is_string($src) && $src !== '') {
+                                    $createdIso = \Carbon\Carbon::parse($src)->toIso8601String();
+                                    $createdText = \Carbon\Carbon::parse($src)->locale('fr')->diffForHumans();
+                                }
+                            } catch (\Throwable $e) {}
+                            $lastIso = '';
+                            $lastText = '';
+                            $lsrc = $d->last_comment_at ?? $d->updated_at ?? $d->created_at ?? null;
+                            try {
+                                if ($lsrc instanceof \DateTimeInterface) {
+                                    $lastIso = $lsrc->format(\DateTimeInterface::ATOM);
+                                    $lastText = \Carbon\Carbon::instance($lsrc)->locale('fr')->diffForHumans();
+                                } elseif (is_string($lsrc) && $lsrc !== '') {
+                                    $lastIso = \Carbon\Carbon::parse($lsrc)->toIso8601String();
+                                    $lastText = \Carbon\Carbon::parse($lsrc)->locale('fr')->diffForHumans();
+                                }
+                            } catch (\Throwable $e) {}
+                        @endphp
                         <div class="forum-topic-meta">
-                            <span class="forum-pill">👤 {{ $d->author?->username ?? '—' }}</span>
-                            <span class="forum-pill">🕒 {{ \Carbon\Carbon::parse($d->updated_at ?? $d->created_at)->locale('fr')->diffForHumans() }}</span>
+                            <span class="forum-pill">👤 Créé par {{ $d->author?->username ?? '—' }}</span>
+                            <span class="forum-pill">🕒 Créé <span class="js-timeago" data-iso="{{ $createdIso }}">{{ $createdText }}</span></span>
+                            <span class="forum-pill">💬 Dernière réponse {{ data_get($d, 'last_comment_user.username') ?: '—' }} · <span class="js-timeago" data-iso="{{ $lastIso }}">{{ $lastText }}</span></span>
                             <span class="forum-pill">👁️ {{ (int) ($d->views ?? 0) }}</span>
                         </div>
                     </div>
@@ -66,6 +101,8 @@
             <h2 style="margin: 0 0 8px; color: var(--text-white);">Créer un topic</h2>
             @if(! $isLoggedIn)
                 <div class="forum-empty">Connecte-toi pour publier un topic.</div>
+            @elseif(! $canWrite)
+                <div class="forum-empty">Ton compte est restreint : tu ne peux plus publier sur le forum.</div>
             @else
                 <form action="{{ route('forum.discussion.store') }}" method="post" id="topicForm">
                     @csrf
@@ -206,7 +243,8 @@
                 const year = item.date_sortie ? ` (${item.date_sortie})` : '';
                 div.textContent = `${item.nom_film}${year}`;
                 div.addEventListener('click', () => {
-                    const token = `[film:${item.id}:${item.nom_film}]`;
+                    const label = `${item.nom_film}${year}`;
+                    const token = `[film:${item.id}:${label}]`;
                     insertRaw(textarea, token);
                     closeFilmModal();
                 });
@@ -235,7 +273,7 @@
         const topicSort = document.getElementById('topicSort');
 
         function timeAgoFr(dateStr) {
-            const date = new Date(dateStr);
+            const date = new Date(String(dateStr || ''));
             if (isNaN(date.getTime())) return '';
             const diff = date.getTime() - Date.now();
             const sec = Math.round(diff / 1000);
@@ -254,6 +292,15 @@
             return rtf.format(year, 'year');
         }
 
+        function updateTimeAgo(root) {
+            const scope = root || document;
+            scope.querySelectorAll('.js-timeago[data-iso]').forEach(el => {
+                const iso = el.getAttribute('data-iso') || '';
+                const s = timeAgoFr(iso);
+                if (s) el.textContent = s;
+            });
+        }
+
         function renderTopics(items) {
             if (!topicList) return;
             if (!items.length) {
@@ -267,13 +314,15 @@
                 a.href = @json(url('/forum/discussion')).replace(/\/$/, '') + '/' + encodeURIComponent(d.id);
                 const pin = d.pinned ? '📌 ' : '';
                 const lock = d.locked ? '🔒 ' : '';
-                const when = timeAgoFr(d.updated_at || d.created_at);
+                const createdIso = d.created_at || '';
+                const lastIso = d.last_comment_at || d.updated_at || d.created_at || '';
                 a.innerHTML = `
                     <div>
                         <h3 class="forum-topic-title">${pin}${lock}${escapeHtml(d.titre || '')}</h3>
                         <div class="forum-topic-meta">
-                            <span class="forum-pill">👤 ${escapeHtml(d.author || '—')}</span>
-                            <span class="forum-pill">🕒 ${escapeHtml(when || '')}</span>
+                            <span class="forum-pill">👤 Créé par ${escapeHtml(d.author || '—')}</span>
+                            <span class="forum-pill">🕒 Créé <span class="js-timeago" data-iso="${escapeHtml(createdIso)}">${escapeHtml(timeAgoFr(createdIso) || '')}</span></span>
+                            <span class="forum-pill">💬 Dernière réponse ${escapeHtml(d.last_comment_by || '—')} · <span class="js-timeago" data-iso="${escapeHtml(lastIso)}">${escapeHtml(timeAgoFr(lastIso) || '')}</span></span>
                             <span class="forum-pill">👁️ ${Number(d.views || 0)}</span>
                         </div>
                     </div>
@@ -286,6 +335,7 @@
                 `;
                 topicList.appendChild(a);
             });
+            updateTimeAgo(topicList);
         }
 
         function escapeHtml(s) {
@@ -312,5 +362,8 @@
             topicTimer = setTimeout(refreshTopics, 200);
         });
         topicSort && topicSort.addEventListener('change', refreshTopics);
+
+        updateTimeAgo(document);
+        setInterval(() => updateTimeAgo(document), 30000);
     </script>
 @endsection

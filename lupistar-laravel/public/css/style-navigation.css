@@ -26,27 +26,43 @@
     width: 100%;
     align-items: center;
     justify-content: space-between;
+    position: relative;
     padding: 0;
     background: linear-gradient(135deg, var(--secondary-dark) 0%, var(--tertiary-dark) 100%);
     box-shadow: 0 2px 10px var(--shadow-darker);
     border-bottom: 2px solid var(--accent-orange);
 }
 
-.navbar .gif {
+.navbar-brand {
     display: flex;
-    justify-content: center;
     align-items: center;
-    height: 60px;
+    gap: 0.6rem;
     padding-left: 1rem;
+    text-decoration: none;
+}
+
+.navbar-brand .gif {
+    height: 44px;
+    width: auto;
+    display: block;
+}
+
+.navbar-brand .navbar-logo {
+    height: 8rem;
+    width: auto;
+    display: block;
 }
 
 .menu {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    margin: 0;
     display: flex;
     height: 100%;
     align-items: center;
     justify-content: center;
     gap: 2rem;
-    margin: 0 auto;
 }
 
 .menu a {
@@ -119,6 +135,11 @@
     position: relative;
 }
 
+.profile-account-link {
+    display: inline-block;
+    text-decoration: none;
+}
+
 /* Badge de notification */
 .notification-badge {
     position: absolute;
@@ -166,8 +187,8 @@
 
 /* Style général pour toutes les images de profil */
 .profil img {
-    width: 50px;
-    height: 50px;
+    width: 3.5rem;
+    height: 3.5rem;
     border-radius: 50%;
     transition: all 0.3s ease;
     cursor: pointer;
@@ -316,9 +337,43 @@ footer {
     box-shadow: 0 -4px 15px var(--shadow-dark);
 }
 
+.footer-top {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.6rem;
+}
+
+.footer-top .footer-gif {
+    height: 2rem;
+    max-height: 2rem;
+    width: auto;
+    display: inline-block;
+    position: relative;
+    top: 0.9rem;
+}
+
 footer p {
     margin: 5px 0;
     font-size: 0.9rem;
+}
+
+.tmdb-credit {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    opacity: 0.85;
+    margin-top: 6px;
+}
+
+.tmdb-credit p {
+    margin: 0;
+}
+
+.tmdb-credit img {
+    height: 0.75rem;
+    width: auto;
 }
 
 footer nav {

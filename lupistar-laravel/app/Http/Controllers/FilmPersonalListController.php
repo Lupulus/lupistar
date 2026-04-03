@@ -26,10 +26,18 @@ class FilmPersonalListController extends Controller
         }
 
         if ($action === 'add') {
-            DB::table('membres_films_list')->updateOrInsert(
-                ['membres_id' => $userId, 'films_id' => $film->id],
-                ['note' => 0]
-            );
+            $exists = DB::table('membres_films_list')
+                ->where('membres_id', $userId)
+                ->where('films_id', $film->id)
+                ->exists();
+
+            if (! $exists) {
+                DB::table('membres_films_list')->insert([
+                    'membres_id' => $userId,
+                    'films_id' => $film->id,
+                    'note' => null,
+                ]);
+            }
         }
 
         if ($action === 'remove') {

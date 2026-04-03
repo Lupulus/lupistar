@@ -5,11 +5,13 @@ namespace App\Http\Controllers;
 use App\Models\Film;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use MongoDB\BSON\ObjectId;
 
 class ForumApiController extends Controller
 {
     public function searchTopics(Request $request)
     {
+        $this->ensureForumAccess($request);
         $q = trim((string) $request->query('q', ''));
         $sort = (string) $request->query('sort', 'activity');
         $filmId = is_numeric($request->query('film_id')) ? (int) $request->query('film_id') : null;
@@ -67,7 +69,7 @@ class ForumApiController extends Controller
                 $query->orderByDesc('updated_at');
             }
 
-            $rows = $query->limit(60)->get(['_id', 'titre', 'pinned', 'locked', 'views', 'created_at', 'updated_at', 'author_id']);
+            $rows = $query->limit(60)->get(['_id', 'titre', 'pinned', 'locked', 'views', 'created_at', 'updated_at', 'author_id', 'last_comment_at', 'last_comment_by']);
             $discussionIds = collect($rows)->map(fn ($d) => $this->mongoDocId($d))->filter()->values()->all();
 
             $countsById = [];
@@ -88,6 +90,8 @@ class ForumApiController extends Controller
 
             $authorMap = [];
             $authorList = collect($rows)->pluck('author_id')->filter()->map(fn ($v) => (int) $v)->unique()->values()->all();
+            $lastIds = collect($rows)->pluck('last_comment_by')->filter()->map(fn ($v) => (int) $v)->unique()->values()->all();
+            $authorList = array_values(array_unique(array_merge($authorList, $lastIds)));
             if (! empty($authorList)) {
                 $authorMap = DB::table('membres')
                     ->whereIn('id', $authorList)
@@ -99,6 +103,7 @@ class ForumApiController extends Controller
             $items = collect($rows)->map(function ($r) use ($countsById, $authorMap) {
                 $docId = $this->mongoDocId($r);
                 $comments = (int) ($countsById[(string) $docId] ?? 0);
+
                 return [
                     'id' => (string) $docId,
                     'titre' => (string) ($r->titre ?? ''),
@@ -108,6 +113,8 @@ class ForumApiController extends Controller
                     'author' => (string) ($authorMap[(int) ($r->author_id ?? 0)] ?? ''),
                     'created_at' => $this->normalizeDateValue($r->created_at ?? null),
                     'updated_at' => $this->normalizeDateValue($r->updated_at ?? null),
+                    'last_comment_at' => $this->normalizeDateValue($r->last_comment_at ?? null),
+                    'last_comment_by' => (string) ($authorMap[(int) ($r->last_comment_by ?? 0)] ?? ''),
                     'replies_count' => max(0, $comments - 1),
                 ];
             })->values();
@@ -136,6 +143,7 @@ class ForumApiController extends Controller
 
         $query = DB::table('forum_discussions as d')
             ->join('membres as m', 'm.id', '=', 'd.author_id')
+            ->leftJoin('membres as lm', 'lm.id', '=', 'd.last_comment_by')
             ->leftJoinSub($countsSub, 'cc', function ($join) {
                 $join->on('cc.discussion_id', '=', 'd.id');
             })
@@ -172,7 +180,10 @@ class ForumApiController extends Controller
                 'd.views',
                 'd.created_at',
                 'd.updated_at',
+                'd.last_comment_at',
+                'd.last_comment_by',
                 'm.username',
+                'lm.username as last_username',
                 DB::raw('COALESCE(cc.comments_count, 0) as comments_count'),
             ])
             ->map(function ($r) {
@@ -185,8 +196,10 @@ class ForumApiController extends Controller
                     'locked' => (bool) $r->locked,
                     'views' => (int) ($r->views ?? 0),
                     'author' => (string) ($r->username ?? ''),
-                    'created_at' => (string) ($r->created_at ?? ''),
-                    'updated_at' => (string) ($r->updated_at ?? ''),
+                    'created_at' => $r->created_at ? \Carbon\Carbon::parse((string) $r->created_at)->toIso8601String() : '',
+                    'updated_at' => $r->updated_at ? \Carbon\Carbon::parse((string) $r->updated_at)->toIso8601String() : '',
+                    'last_comment_at' => $r->last_comment_at ? \Carbon\Carbon::parse((string) $r->last_comment_at)->toIso8601String() : '',
+                    'last_comment_by' => (string) ($r->last_username ?? ''),
                     'replies_count' => max(0, $comments - 1),
                 ];
             })
@@ -197,6 +210,7 @@ class ForumApiController extends Controller
 
     public function searchFilms(Request $request)
     {
+        $this->ensureForumAccess($request);
         $q = trim((string) $request->query('q', ''));
         if (mb_strlen($q) < 2) {
             return response()->json(['success' => true, 'items' => []]);
@@ -221,6 +235,7 @@ class ForumApiController extends Controller
 
     public function searchUsers(Request $request)
     {
+        $this->ensureForumAccess($request);
         $q = trim((string) $request->query('q', ''));
         if (mb_strlen($q) < 2) {
             return response()->json(['success' => true, 'items' => []]);
@@ -238,6 +253,25 @@ class ForumApiController extends Controller
             ]);
 
         return response()->json(['success' => true, 'items' => $items]);
+    }
+
+    private function ensureForumAccess(Request $request): void
+    {
+        $userId = $request->session()->get('user_id');
+        $userId = is_numeric($userId) ? (int) $userId : 0;
+        if ($userId <= 0) {
+            return;
+        }
+
+        $raw = (string) (DB::table('membres')->where('id', $userId)->value('restriction') ?? '');
+        $list = array_values(array_filter(array_map(
+            static fn ($v) => trim((string) $v),
+            explode(',', $raw)
+        ), static fn ($v) => $v !== '' && $v !== 'Aucune'));
+
+        if (in_array('Forum Accès Off', $list, true)) {
+            abort(403);
+        }
     }
 
     private function useMongo(): bool
@@ -262,7 +296,7 @@ class ForumApiController extends Controller
     private function toObjectId(string $id)
     {
         try {
-            return new \MongoDB\BSON\ObjectId($id);
+            return new ObjectId($id);
         } catch (\Throwable) {
             abort(404);
         }

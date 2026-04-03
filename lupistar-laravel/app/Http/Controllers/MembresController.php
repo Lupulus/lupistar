@@ -4,7 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Models\Membre;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Str;
 
 class MembresController extends Controller
 {
@@ -14,9 +17,20 @@ class MembresController extends Controller
         if (! in_array($titre, ['Admin', 'Super-Admin'], true)) {
             abort(403);
         }
+        $this->purgeDueDeletions();
+        if ($titre === 'Admin') {
+            $userId = is_numeric($request->session()->get('user_id')) ? (int) $request->session()->get('user_id') : 0;
+            if ($userId > 0) {
+                $restr = (string) (DB::table('membres')->where('id', $userId)->value('restriction') ?? '');
+                $list = array_values(array_filter(array_map(static fn ($v) => trim($v), explode(',', $restr))));
+                if (in_array('Admin Membres Off', $list, true)) {
+                    abort(403);
+                }
+            }
+        }
 
         $membres = Membre::query()
-            ->select(['id', 'username', 'email', 'titre', 'restriction', 'avertissements', 'recompenses', 'photo_profil', 'demande_promotion'])
+            ->select(['id', 'username', 'email', 'titre', 'restriction', 'avertissements', 'recompenses', 'photo_profil', 'demande_promotion', 'deletion_scheduled_for', 'deletion_cancel_token', 'deletion_requested_at'])
             ->orderBy('id')
             ->get();
 
@@ -41,6 +55,9 @@ class MembresController extends Controller
         $user = Membre::query()->whereKey($id)->first(['id', 'titre']);
         if (! $user) {
             return response()->json(['success' => false, 'message' => 'Utilisateur non trouvé'], 404);
+        }
+        if ($this->isDeletionPending($id)) {
+            return response()->json(['success' => false, 'message' => 'Ce compte est en cours de suppression'], 422);
         }
 
         $currentTitle = (string) $user->titre;
@@ -75,25 +92,47 @@ class MembresController extends Controller
         [$isAdmin] = $this->getAdminFlags($request);
 
         $id = is_numeric($request->input('id')) ? (int) $request->input('id') : 0;
-        $newRestriction = (string) $request->input('newRestriction', '');
-        $validRestrictions = ['Aucune', 'Salon Général', 'Salon Anime', 'Salon Films', 'Salon Séries', 'Modération Complète'];
+        $restrictions = $request->input('restrictions');
+        $restrictions = is_array($restrictions)
+            ? array_values(array_filter(
+                array_map(static fn ($v) => trim((string) $v), $restrictions),
+                static fn ($v) => $v !== ''
+            ))
+            : [];
 
-        if ($id <= 0 || ! in_array($newRestriction, $validRestrictions, true)) {
-            return response()->json(['success' => false, 'message' => 'Restriction invalide'], 422);
+        if ($id <= 0) {
+            return response()->json(['success' => false, 'message' => 'Paramètres invalides'], 422);
         }
 
         $user = Membre::query()->whereKey($id)->first(['id', 'titre']);
         if (! $user) {
             return response()->json(['success' => false, 'message' => 'Utilisateur non trouvé'], 404);
         }
+        if ($this->isDeletionPending($id)) {
+            return response()->json(['success' => false, 'message' => 'Ce compte est en cours de suppression'], 422);
+        }
 
-        if ($isAdmin && in_array((string) $user->titre, ['Super-Admin', 'Admin'], true)) {
+        $targetTitle = (string) $user->titre;
+        if ($isAdmin && in_array($targetTitle, ['Super-Admin', 'Admin'], true)) {
             return response()->json(['success' => false, 'message' => 'Vous n\'avez pas les permissions pour modifier cette restriction'], 403);
         }
 
-        DB::table('membres')->where('id', $id)->update(['restriction' => $newRestriction]);
+        $validUser = ['Forum Écriture Off', 'Forum Accès Off'];
+        $validAdmin = [
+            'Admin Film Approuver Off',
+            'Admin Film Supprimer Off',
+            'Admin Film Modifier Off',
+            'Admin Notif Off',
+            'Admin Conversions Off',
+            'Admin Membres Off',
+        ];
+        $valid = $targetTitle === 'Admin' ? array_merge($validUser, $validAdmin) : $validUser;
+        $restrictions = array_values(array_unique(array_filter($restrictions, static fn ($r) => in_array($r, $valid, true))));
 
-        return response()->json(['success' => true, 'newValue' => $newRestriction, 'message' => 'Restriction mise à jour avec succès']);
+        $toStore = implode(',', $restrictions);
+        DB::table('membres')->where('id', $id)->update(['restriction' => $toStore !== '' ? $toStore : null]);
+
+        return response()->json(['success' => true, 'newValue' => $toStore !== '' ? $toStore : 'Aucune', 'message' => 'Restriction(s) mise(s) à jour avec succès']);
     }
 
     public function updateEmail(Request $request)
@@ -109,6 +148,9 @@ class MembresController extends Controller
         $user = Membre::query()->whereKey($id)->first(['id', 'titre']);
         if (! $user) {
             return response()->json(['success' => false, 'message' => 'Utilisateur non trouvé'], 404);
+        }
+        if ($this->isDeletionPending($id)) {
+            return response()->json(['success' => false, 'message' => 'Ce compte est en cours de suppression'], 422);
         }
 
         if ($isAdmin && in_array((string) $user->titre, ['Super-Admin', 'Admin'], true)) {
@@ -141,6 +183,9 @@ class MembresController extends Controller
         if (! $user) {
             return response()->json(['success' => false, 'message' => 'Utilisateur non trouvé'], 404);
         }
+        if ($this->isDeletionPending($id)) {
+            return response()->json(['success' => false, 'message' => 'Ce compte est en cours de suppression'], 422);
+        }
 
         if ($isAdmin && in_array((string) $user->titre, ['Super-Admin', 'Admin'], true)) {
             return response()->json(['success' => false, 'message' => 'Vous n\'avez pas les permissions pour modifier ce pseudo'], 403);
@@ -170,6 +215,7 @@ class MembresController extends Controller
         $id = is_numeric($request->input('id')) ? (int) $request->input('id') : 0;
         $type = (string) $request->input('type', '');
         $increment = is_numeric($request->input('increment')) ? (int) $request->input('increment') : 0;
+        $reason = trim((string) $request->input('reason', ''));
 
         if ($id <= 0 || ! in_array($type, ['avertissements', 'recompenses'], true) || ! in_array($increment, [-1, 1], true)) {
             return response()->json(['success' => false, 'message' => 'Paramètres invalides'], 422);
@@ -178,6 +224,9 @@ class MembresController extends Controller
         $user = Membre::query()->whereKey($id)->first(['id', 'titre', $type]);
         if (! $user) {
             return response()->json(['success' => false, 'message' => 'Membre non trouvé'], 404);
+        }
+        if ($this->isDeletionPending($id)) {
+            return response()->json(['success' => false, 'message' => 'Ce compte est en cours de suppression'], 422);
         }
 
         if ($isAdmin && in_array((string) $user->titre, ['Super-Admin', 'Admin'], true)) {
@@ -188,6 +237,20 @@ class MembresController extends Controller
         $newValue = max(0, $current + $increment);
 
         DB::table('membres')->where('id', $id)->update([$type => $newValue]);
+
+        if ($type === 'avertissements') {
+            $message = $increment > 0
+                ? '⚠️ Vous avez reçu un avertissement'.($reason !== '' ? ' : '.$reason : '').'. (Total: '.$newValue.' avertissement'.($newValue > 1 ? 's' : '').')'
+                : '✅ Un de vos avertissements a été retiré'.($reason !== '' ? ' : '.$reason : '').'. (Total: '.$newValue.' avertissement'.($newValue > 1 ? 's' : '').')';
+
+            $this->notifyUser($id, 'Avertissement', $message, 'warning_admin');
+        } else {
+            $message = $increment > 0
+                ? '🎁 Vous avez reçu '.abs($increment).' récompense'.(abs($increment) > 1 ? 's' : '').($reason !== '' ? ' : '.$reason : '').'. (Total: '.$newValue.')'
+                : '🎁 '.abs($increment).' récompense'.(abs($increment) > 1 ? 's' : '').' a été retirée'.($reason !== '' ? ' : '.$reason : '').'. (Total: '.$newValue.')';
+
+            $this->notifyUser($id, 'Récompenses', $message, 'reward_admin');
+        }
 
         return response()->json(['success' => true, 'newValue' => $newValue]);
     }
@@ -276,6 +339,86 @@ class MembresController extends Controller
         }
     }
 
+    public function requestDeletion(Request $request)
+    {
+        [$isAdmin, $isSuperAdmin] = $this->getAdminFlags($request);
+        $id = is_numeric($request->input('id')) ? (int) $request->input('id') : 0;
+        if ($id <= 0) {
+            return response()->json(['success' => false, 'message' => 'Paramètres invalides'], 422);
+        }
+        $user = DB::table('membres')->where('id', $id)->first(['id', 'email', 'titre', 'deletion_scheduled_for', 'deletion_cancel_token']);
+        if (! $user) {
+            return response()->json(['success' => false, 'message' => 'Utilisateur non trouvé'], 404);
+        }
+        if ($isAdmin && in_array((string) $user->titre, ['Super-Admin', 'Admin'], true)) {
+            return response()->json(['success' => false, 'message' => 'Vous n\'avez pas les permissions pour supprimer ce compte'], 403);
+        }
+        if ($this->isDeletionPending($id)) {
+            return response()->json(['success' => false, 'message' => 'Suppression déjà planifiée'], 422);
+        }
+        $token = Str::random(64);
+        $scheduledFor = now()->addDay();
+        DB::table('membres')->where('id', $id)->update([
+            'deletion_scheduled_for' => $scheduledFor,
+            'deletion_cancel_token' => $token,
+            'deletion_requested_at' => now(),
+        ]);
+        $link = route('membres.deletion.cancel.link', ['token' => $token]);
+        $to = (string) ($user->email ?? '');
+        if ($to !== '') {
+            try {
+                Mail::html(
+                    '<p>Bonjour,</p>
+                     <p>Une suppression de votre compte Lupistar a été demandée par un administrateur.</p>
+                     <p>Votre compte sera supprimé automatiquement dans 24 heures.</p>
+                     <p>Pour annuler cette suppression, cliquez ici :</p>
+                     <p><a href="'.e($link).'">'.e($link).'</a></p>',
+                    function ($message) use ($to) {
+                        $message->to($to)->subject('Annulation suppression de compte - Lupistar');
+                    }
+                );
+            } catch (\Throwable) {
+            }
+        }
+
+        return response()->json(['success' => true, 'message' => 'Suppression planifiée. Un email d’annulation a été envoyé.']);
+    }
+
+    public function cancelDeletionAdmin(Request $request)
+    {
+        [$isAdmin, $isSuperAdmin] = $this->getAdminFlags($request);
+        $id = is_numeric($request->input('id')) ? (int) $request->input('id') : 0;
+        if ($id <= 0) {
+            return response()->json(['success' => false, 'message' => 'Paramètres invalides'], 422);
+        }
+        $exists = DB::table('membres')->where('id', $id)->exists();
+        if (! $exists) {
+            return response()->json(['success' => false, 'message' => 'Utilisateur non trouvé'], 404);
+        }
+        DB::table('membres')->where('id', $id)->update([
+            'deletion_scheduled_for' => null,
+            'deletion_cancel_token' => null,
+            'deletion_requested_at' => null,
+        ]);
+
+        return response()->json(['success' => true, 'message' => 'Suppression annulée.']);
+    }
+
+    public function cancelDeletionByToken(Request $request, string $token)
+    {
+        $row = DB::table('membres')->where('deletion_cancel_token', $token)->whereNotNull('deletion_scheduled_for')->first(['id']);
+        if (! $row) {
+            return response('Lien invalide ou suppression déjà annulée.', 404);
+        }
+        DB::table('membres')->where('id', $row->id)->update([
+            'deletion_scheduled_for' => null,
+            'deletion_cancel_token' => null,
+            'deletion_requested_at' => null,
+        ]);
+
+        return response('La suppression de votre compte a été annulée avec succès.');
+    }
+
     private function getAdminFlags(Request $request): array
     {
         $titre = (string) $request->session()->get('titre', '');
@@ -299,5 +442,28 @@ class MembresController extends Controller
             'lu' => false,
             'date_creation' => now(),
         ]);
+    }
+
+    private function isDeletionPending(int $userId): bool
+    {
+        $date = DB::table('membres')->where('id', $userId)->value('deletion_scheduled_for');
+
+        return $date !== null && now()->lessThanOrEqualTo(Carbon::parse($date));
+    }
+
+    private function purgeDueDeletions(): void
+    {
+        $due = DB::table('membres')
+            ->whereNotNull('deletion_scheduled_for')
+            ->where('deletion_scheduled_for', '<=', now())
+            ->get(['id']);
+        foreach ($due as $u) {
+            $id = (int) $u->id;
+            DB::transaction(function () use ($id) {
+                DB::table('films_temp')->where('propose_par', $id)->delete();
+                DB::table('membres_films_list')->where('membres_id', $id)->delete();
+                DB::table('membres')->where('id', $id)->delete();
+            });
+        }
     }
 }

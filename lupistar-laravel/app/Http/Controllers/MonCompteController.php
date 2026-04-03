@@ -22,21 +22,21 @@ class MonCompteController extends Controller
 
         $totalFilms = (int) DB::table('membres_films_list')->where('membres_id', $userId)->count();
 
-        $bestAuthor = DB::table('films as f')
-            ->join('membres_films_list as mfl', function ($join) use ($userId) {
-                $join->on('f.id', '=', 'mfl.films_id')->where('mfl.membres_id', '=', $userId);
-            })
-            ->leftJoin('auteurs as a', 'f.auteur_id', '=', 'a.id')
-            ->selectRaw('a.nom as nom, COUNT(*) as c')
-            ->groupBy('a.nom')
-            ->orderByDesc('c')
-            ->limit(1)
-            ->first();
-
-        $avgRating = DB::table('membres_films_list')->where('membres_id', $userId)->avg('note');
+        $avgRating = DB::table('membres_films_list')
+            ->where('membres_id', $userId)
+            ->whereNotNull('note')
+            ->avg('note');
         $avgRating = $avgRating !== null ? (float) $avgRating : null;
 
-        $approvedFilms = (int) DB::table('films_temp')->where('propose_par', $userId)->where('statut', 'approuve')->count();
+        $ratedFilms = (int) DB::table('membres_films_list')
+            ->where('membres_id', $userId)
+            ->whereNotNull('note')
+            ->count();
+
+        $approvedFilms = (int) DB::table('films_temp')
+            ->where('propose_par', $userId)
+            ->where('statut', 'approuve')
+            ->count();
 
         $statsCategories = DB::table('films as f')
             ->join('membres_films_list as mfl', function ($join) use ($userId) {
@@ -54,13 +54,80 @@ class MonCompteController extends Controller
             'photo_profil' => $request->session()->get('photo_profil', 'img/img-profile/profil.png'),
             'email' => $user->email ?? '',
             'total_films' => $totalFilms,
-            'best_author' => $bestAuthor?->nom ?? null,
             'avg_rating' => $avgRating,
+            'rated_films' => $ratedFilms,
             'approved_films' => $approvedFilms,
             'recompenses' => (int) ($user->recompenses ?? 0),
             'avertissements' => (int) ($user->avertissements ?? 0),
             'stats_categories' => $statsCategories,
         ]);
+    }
+
+    public function demanderPromotion(Request $request)
+    {
+        $userId = $request->session()->get('user_id');
+        $userId = is_numeric($userId) ? (int) $userId : null;
+        if (! $userId) {
+            return response()->json(['success' => false, 'message' => 'Utilisateur non connecté'], 401);
+        }
+
+        $result = DB::transaction(function () use ($userId) {
+            $user = DB::table('membres')
+                ->where('id', $userId)
+                ->lockForUpdate()
+                ->first(['id', 'titre', 'recompenses', 'demande_promotion']);
+
+            if (! $user) {
+                return ['ok' => false, 'status' => 404, 'message' => 'Utilisateur non trouvé'];
+            }
+
+            if ((int) ($user->demande_promotion ?? 0) === 1) {
+                return ['ok' => false, 'status' => 422, 'message' => 'Une demande de promotion est déjà en cours'];
+            }
+
+            $titreActuel = (string) ($user->titre ?? '');
+            $recompenses = is_numeric($user->recompenses) ? (int) $user->recompenses : 0;
+
+            $coutParTitre = [
+                'Membre' => 3,
+                'Amateur' => 6,
+                'Fan' => 9,
+                'NoLife' => 12,
+            ];
+            $ordre = ['Membre', 'Amateur', 'Fan', 'NoLife'];
+            $index = array_search($titreActuel, $ordre, true);
+            $titreSuivant = ($index !== false && $index < count($ordre) - 1) ? $ordre[$index + 1] : $titreActuel;
+            $cout = $coutParTitre[$titreActuel] ?? 0;
+
+            if ($cout <= 0 || $titreSuivant === $titreActuel) {
+                return ['ok' => false, 'status' => 422, 'message' => 'Ce titre ne peut pas être promu automatiquement'];
+            }
+
+            if ($recompenses < $cout) {
+                $manquant = $cout - $recompenses;
+
+                return ['ok' => false, 'status' => 422, 'message' => "Il vous manque $manquant récompense(s) pour demander cette promotion"];
+            }
+
+            DB::table('membres')->where('id', $userId)->update([
+                'demande_promotion' => 1,
+            ]);
+
+            $this->notifyUser(
+                $userId,
+                'Demande de promotion',
+                "Votre demande de promotion vers le titre \"$titreSuivant\" a été soumise. Elle sera examinée par un administrateur.",
+                'promotion_request'
+            );
+
+            return ['ok' => true];
+        });
+
+        if (! ($result['ok'] ?? false)) {
+            return response()->json(['success' => false, 'message' => $result['message'] ?? 'Erreur'], (int) ($result['status'] ?? 500));
+        }
+
+        return response()->json(['success' => true, 'message' => 'Demande de promotion soumise avec succès']);
     }
 
     public function updateEmail(Request $request)
@@ -219,17 +286,24 @@ class MonCompteController extends Controller
         $userId = $request->session()->get('user_id');
         $userId = is_numeric($userId) ? (int) $userId : null;
 
-        $ackVersion = 0;
-        if ($userId) {
-            $raw = DB::table('user_preferences')
-                ->where('user_id', $userId)
-                ->where('preference_type', 'privacy_policy_ack')
-                ->value('preference_value');
-            $ackVersion = is_numeric($raw) ? (int) $raw : 0;
-        } else {
-            $cookieValue = $request->cookie('pp_ack');
-            $ackVersion = is_numeric($cookieValue) ? (int) $cookieValue : 0;
+        if (! $userId) {
+            return response()->json([
+                'success' => true,
+                'should_show' => false,
+                'current_version' => $currentVersion,
+                'ack_version' => 0,
+                'message' => $message,
+                'updated_at' => $updatedAt,
+                'policy_url' => route('confidentialite'),
+            ]);
         }
+
+        $ackVersion = 0;
+        $raw = DB::table('user_preferences')
+            ->where('user_id', $userId)
+            ->where('preference_type', 'privacy_policy_ack')
+            ->value('preference_value');
+        $ackVersion = is_numeric($raw) ? (int) $raw : 0;
 
         return response()->json([
             'success' => true,
@@ -282,5 +356,17 @@ class MonCompteController extends Controller
     private function defaultCategories(): array
     {
         return ['Film', 'Série', 'Animation', "Série d'Animation", 'Anime'];
+    }
+
+    private function notifyUser(int $userId, string $titre, string $message, string $type): void
+    {
+        DB::table('notifications')->insert([
+            'user_id' => $userId,
+            'titre' => $titre,
+            'message' => $message,
+            'type' => $type,
+            'lu' => false,
+            'date_creation' => now(),
+        ]);
     }
 }

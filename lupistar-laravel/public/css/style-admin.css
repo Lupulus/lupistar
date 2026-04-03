@@ -234,6 +234,152 @@
     }
 }
 
+/* Tableau des films */
+.films-table-wrapper {
+    margin : 3rem 3.5rem 1.5rem 3.5rem;
+    background: var(--secondary-dark);
+    border: 2px solid var(--accent-orange);
+    border-radius: 12px;
+    box-shadow: 0 8px 25px var(--shadow-darker);
+    overflow: hidden;
+    height: 34.5rem;
+    overflow-y: auto;
+}
+
+.admin-films-table {
+    color: var(--text-white);
+}
+
+.films-table-wrapper .admin-films-table {
+    box-shadow: none;
+    border-radius: 0;
+}
+
+.films-table-wrapper .admin-films-table thead {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+}
+
+.admin-films-table th,
+.admin-films-table td {
+    vertical-align: middle;
+}
+
+.admin-films-table tbody tr {
+    cursor: pointer;
+}
+
+.admin-films-table td {
+    box-sizing: border-box;
+    height: 8rem;
+    padding: 0.2rem;
+}
+
+.admin-films-table th:nth-child(2),
+.admin-films-table td:nth-child(2) {
+    text-align: left;
+}
+
+.admin-films-table th:nth-child(1),
+.admin-films-table td:nth-child(1) {
+    text-align: center;
+}
+
+.admin-films-table th:nth-child(3),
+.admin-films-table td:nth-child(3),
+.admin-films-table th:nth-child(4),
+.admin-films-table td:nth-child(4),
+.admin-films-table th:nth-child(5),
+.admin-films-table td:nth-child(5),
+.admin-films-table th:nth-child(6),
+.admin-films-table td:nth-child(6),
+.admin-films-table th:nth-child(7),
+.admin-films-table td:nth-child(7) {
+    text-align: center;
+}
+
+.admin-films-table th:nth-child(1),
+.admin-films-table td:nth-child(1) {
+    width: 10%;
+}
+
+.admin-films-table th:nth-child(2),
+.admin-films-table td:nth-child(2) {
+    width: 28%;
+}
+
+.admin-films-table th:nth-child(3),
+.admin-films-table td:nth-child(3) {
+    width: 14%;
+}
+
+.admin-films-table th:nth-child(4),
+.admin-films-table td:nth-child(4) {
+    width: 16%;
+}
+
+.admin-films-table th:nth-child(5),
+.admin-films-table td:nth-child(5) {
+    width: 12%;
+}
+
+.admin-films-table th:nth-child(6),
+.admin-films-table td:nth-child(6) {
+    width: 8%;
+}
+
+.admin-film-thumb {
+    display: block;
+    height: 100%;
+    max-height: 100%;
+    aspect-ratio: 2 / 3;
+    width: auto;
+    object-fit: cover;
+    border-radius: 4px;
+    box-shadow: 0 2px 6px var(--shadow-dark);
+    border: 2px solid rgba(255, 140, 0, 0.35);
+}
+
+.film-actions-cell {
+    width: 110px;
+    padding: 0.2rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+}
+
+.film-icon-btn {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 0.15rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.12s ease, filter 0.12s ease;
+}
+
+.film-icon-btn.edit {
+    color: var(--accent-orange);
+}
+
+.film-icon-btn.delete {
+    color: #dc3545;
+}
+
+.film-action-icon {
+    width: 1.25rem;
+    height: 1.25rem;
+    display: block;
+}
+
+.film-icon-btn:hover {
+    transform: scale(1.12);
+    filter: brightness(1.08);
+}
+
 /* Reset et base */
 html,
 body {
@@ -275,7 +421,7 @@ body {
 }
 
 /* ============================================================================ */
-/*                              Formulaire d'ajout !                            */
+/*                                 Formulaires                                  */
 /* ============================================================================ */
 h1 {
     display: flex;
@@ -355,6 +501,7 @@ label {
 form input[type="text"],
 form input[type="number"],
 form input[type="file"],
+form input[type="url"],
 form textarea,
 form select {
     width: 100%;
@@ -372,6 +519,7 @@ form select {
 form input[type="text"]:focus,
 form input[type="number"]:focus,
 form input[type="file"]:focus,
+form input[type="url"]:focus,
 form textarea:focus,
 form select:focus {
     border-color: var(--accent-orange);
@@ -426,174 +574,6 @@ form input[type="submit"]:hover {
     display: none !important;
 }
 
-/* Conteneur des sous-genres */
-#sous-genres-container {
-    background: var(--secondary-dark);
-    border: 2px solid var(--tertiary-dark);
-    border-radius: 8px;
-    padding: 1rem;
-    margin-top: 0.5rem;
-}
-
-#sous-genres-container table {
-    width: 100%;
-    border-collapse: collapse;
-}
-
-#sous-genres-container td {
-    padding: 0.3rem;
-    vertical-align: top;
-}
-
-.checkbox-label {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-size: 0.9em;
-    color: var(--text-light-gray);
-    cursor: pointer;
-    transition: color 0.2s ease;
-}
-
-.checkbox-label:hover {
-    color: var(--accent-orange);
-}
-
-.checkbox-label input[type="checkbox"] {
-    width: auto;
-    margin: 0;
-    accent-color: var(--accent-orange);
-}
-
-/* Message d'avertissement */
-#sous-genre-warning {
-    color: #ff4444 !important;
-    font-size: 0.9em;
-    margin-top: 0.5rem;
-    text-align: center;
-}
-
-/* Compteur de caractères */
-.description-compteur {
-    font-size: 0.8em;
-    color: var(--text-medium-gray);
-    text-align: right;
-    margin-top: 0.25rem;
-}
-
-/* Conteneur principal de l'autocomplétion */
-.autocomplete-container {
-    position: relative;
-    display: inline-block;
-    width: auto;
-    max-width: 100%;
-}
-
-/* Liste des suggestions d'autocomplétion */
-.autocomplete-suggestions {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    width: 100%;
-    min-width: 200px;
-    z-index: 1000;
-    background: var(--secondary-dark);
-    border: 2px solid var(--tertiary-dark);
-    border-top: none;
-    border-radius: 0 0 8px 8px;
-    box-shadow: 0 4px 15px var(--shadow-darker);
-    max-height: 200px;
-    overflow-y: auto;
-    display: none;
-}
-
-/* Affichage de la liste quand elle est active */
-.autocomplete-suggestions.show {
-    display: block;
-}
-
-/* Éléments individuels de suggestion */
-.autocomplete-suggestion {
-    padding: 12px 15px;
-    cursor: pointer;
-    border-bottom: 1px solid var(--tertiary-dark);
-    color: var(--text-light-gray);
-    font-size: 14px;
-    transition: all 0.2s ease;
-    background: var(--secondary-dark);
-}
-
-/* Dernier élément sans bordure */
-.autocomplete-suggestion:last-child {
-    border-bottom: none;
-}
-
-/* État de survol des suggestions */
-.autocomplete-suggestion:hover,
-.autocomplete-suggestion.highlighted {
-    background: var(--tertiary-dark);
-    color: var(--text-white);
-}
-
-/* État actif/sélectionné */
-.autocomplete-suggestion:active {
-    background: var(--accent-orange);
-    color: var(--text-white);
-}
-
-/* Message quand aucune suggestion n'est trouvée */
-.autocomplete-no-results {
-    padding: 12px 15px;
-    color: var(--text-medium-gray);
-    font-style: italic;
-    text-align: center;
-    background: var(--secondary-dark);
-}
-
-/* Personnalisation de la scrollbar pour les suggestions */
-.autocomplete-suggestions::-webkit-scrollbar {
-    width: 8px;
-}
-
-.autocomplete-suggestions::-webkit-scrollbar-track {
-    background: var(--secondary-dark);
-    border-radius: 0 0 8px 0;
-}
-
-.autocomplete-suggestions::-webkit-scrollbar-thumb {
-    background: var(--accent-orange);
-    border-radius: 4px;
-}
-
-.autocomplete-suggestions::-webkit-scrollbar-thumb:hover {
-    background: var(--accent-orange-hover);
-}
-
-/* Animation d'apparition */
-@keyframes fadeInDown {
-    from {
-        opacity: 0;
-        transform: translateY(-10px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-.autocomplete-suggestions.show {
-    animation: fadeInDown 0.2s ease-out;
-}
-
-/* Styles pour les champs avec autocomplétion active */
-.autocomplete-container input:focus {
-    border-radius: 8px 8px 0 0;
-}
-
-.autocomplete-container input:focus + .autocomplete-suggestions {
-    border-top: 2px solid var(--accent-orange);
-}
-
 /* Responsive design */
 @media (max-width: 768px) {
     form {
@@ -618,15 +598,6 @@ form input[type="submit"]:hover {
         margin: 2rem 1rem 1rem 1rem;
         padding: 1rem;
         font-size: 1.5em;
-    }
-    
-    .autocomplete-suggestions {
-        max-height: 150px;
-        font-size: 13px;
-    }
-    
-    .autocomplete-suggestion {
-        padding: 10px 12px;
     }
 }
 
@@ -674,7 +645,7 @@ form input[type="submit"]:hover {
 /* ============================================================================ */
 /*                     Film ajouté récemment (admin page)!                      */
 /* ============================================================================ */
-h2 {
+.admin-section > h2 {
     display: flex;
     justify-content: center;
     align-items: center;
@@ -1161,11 +1132,16 @@ h2 {
     font-weight: 600;
     color: var(--accent-orange);
     font-size: 1.1em;
+    min-width: 0;
+}
+
+.membre-username-inner {
     display: flex;
     align-items: center;
     gap: 12px;
     height: 100%;
-    min-height: 40px; /* Assure une hauteur minimale */
+    min-height: 40px;
+    min-width: 0;
 }
 
 .membre-photo-profil {
@@ -1184,6 +1160,10 @@ h2 {
 
 .membre-nom {
     flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 /* Badge de notification pour les demandes de promotion */
@@ -1459,7 +1439,7 @@ h2 {
 /*                           Modal Films en attente                            */
 /* ============================================================================ */
 
-.modal {
+#pendingFilmModal {
     position: fixed;
     z-index: 1000;
     left: 0;
@@ -1470,7 +1450,7 @@ h2 {
     backdrop-filter: blur(5px);
 }
 
-.modal-content {
+#pendingFilmModal .modal-content {
     background: linear-gradient(135deg, var(--secondary-dark) 0%, var(--tertiary-dark) 100%);
     margin: 2% auto;
     padding: 0;
@@ -1484,7 +1464,7 @@ h2 {
     position: relative;
 }
 
-.modal-content .close {
+#pendingFilmModal .modal-content .close {
     color: var(--text-light-gray);
     float: right;
     font-size: 28px;
@@ -1497,11 +1477,11 @@ h2 {
     transition: color 0.3s ease;
 }
 
-.modal-content .close:hover {
+#pendingFilmModal .modal-content .close:hover {
     color: var(--accent-orange);
 }
 
-.modal-content h3 {
+#pendingFilmModal .modal-content h3 {
     color: var(--text-white);
     text-align: center;
     padding: 1.5rem 2rem;
@@ -1512,15 +1492,15 @@ h2 {
     text-shadow: 1px 1px 2px var(--shadow-dark);
 }
 
-.modal-body {
+#pendingFilmModal .modal-body {
     padding: 2rem;
     display: grid;
     grid-template-columns: 2fr 1fr;
     gap: 2rem;
 }
 
-.film-info-section h4,
-.admin-actions-section h4 {
+#pendingFilmModal .film-info-section h4,
+#pendingFilmModal .admin-actions-section h4 {
     color: var(--accent-orange);
     font-weight: 600;
     margin: 0 0 1rem 0;
@@ -1528,19 +1508,19 @@ h2 {
     border-bottom: 2px solid var(--accent-orange);
 }
 
-.film-details {
+#pendingFilmModal .film-details {
     display: grid;
     gap: 1rem;
 }
 
-.detail-row {
+#pendingFilmModal .detail-row {
     display: grid;
     grid-template-columns: 150px 1fr;
     gap: 1rem;
     align-items: center;
 }
 
-.detail-row label {
+#pendingFilmModal .detail-row label {
     color: var(--text-white);
     font-weight: 600;
     font-size: 0.95em;
@@ -1615,7 +1595,7 @@ h2 {
     font-size: 0.85rem;
 }
 
-.admin-actions-section {
+#pendingFilmModal .admin-actions-section {
     background: var(--primary-dark);
     padding: 1.5rem;
     border-radius: 12px;
@@ -1678,311 +1658,6 @@ h2 {
     transform: translateY(-1px);
 }
 
-@media only screen and (max-width: 768px) {
-    .menu {
-        width: 100%;
-        margin-right: 0;
-        gap: 1rem;
-
-/* ============================================================================ */
-/*                      Modal Conversions de Studios                           */
-/* ============================================================================ */
-
-.studio-conversions-modal {
-    max-width: 1200px;
-}
-
-.studio-conversions-modal .modal-body {
-    display: block;
-    padding: 2rem;
-}
-
-.conversions-info {
-    background: var(--primary-dark);
-    padding: 1rem;
-    border-radius: 8px;
-    border: 1px solid var(--light-gray);
-    margin-bottom: 2rem;
-}
-
-.conversions-info p {
-    color: var(--text-light-gray);
-    margin: 0;
-    font-size: 0.95em;
-}
-
-.add-conversion-section,
-.existing-conversions-section,
-.test-conversion-section {
-    margin-bottom: 2rem;
-    background: var(--primary-dark);
-    padding: 1.5rem;
-    border-radius: 12px;
-    border: 1px solid var(--light-gray);
-}
-
-.add-conversion-section h4,
-.existing-conversions-section h4,
-.test-conversion-section h4 {
-    color: var(--accent-orange);
-    font-weight: 600;
-    margin: 0 0 1rem 0;
-    padding-bottom: 0.5rem;
-    border-bottom: 2px solid var(--accent-orange);
-}
-
-.conversion-form {
-    display: grid;
-    gap: 1rem;
-}
-
-.conversion-form .form-group {
-    display: grid;
-    gap: 0.5rem;
-}
-
-.conversion-form label {
-    color: var(--text-white);
-    font-weight: 600;
-    font-size: 0.95em;
-}
-
-.conversion-form input,
-.conversion-form textarea {
-    background: var(--secondary-dark);
-    border: 2px solid var(--light-gray);
-    border-radius: 8px;
-    padding: 0.7rem;
-    color: var(--text-white);
-    font-size: 0.95em;
-    transition: border-color 0.3s ease;
-    resize: vertical;
-}
-
-.conversion-form input:focus,
-.conversion-form textarea:focus {
-    outline: none;
-    border-color: var(--accent-orange);
-    box-shadow: 0 0 5px rgba(255, 140, 0, 0.3);
-}
-
-.btn-add-conversion {
-    background: linear-gradient(135deg, var(--accent-orange) 0%, var(--accent-orange-hover) 100%);
-    color: white;
-    border: none;
-    border-radius: 8px;
-    padding: 0.8rem 1.5rem;
-    font-weight: 600;
-    font-size: 0.95em;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    box-shadow: 0 2px 8px rgba(255, 140, 0, 0.3);
-}
-
-.btn-add-conversion:hover {
-    background: linear-gradient(135deg, var(--accent-orange-hover) 0%, #e67e00 100%);
-    box-shadow: 0 4px 12px rgba(255, 140, 0, 0.4);
-    transform: translateY(-1px);
-}
-
-.conversions-list {
-    display: grid;
-    gap: 1rem;
-    max-height: 400px;
-    overflow-y: auto;
-}
-
-.conversion-item {
-    background: var(--secondary-dark);
-    border: 1px solid var(--light-gray);
-    border-radius: 8px;
-    padding: 1rem;
-    transition: border-color 0.3s ease;
-}
-
-.conversion-item:hover {
-    border-color: var(--accent-orange);
-}
-
-.conversion-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 0.5rem;
-}
-
-.conversion-header strong {
-    color: var(--text-white);
-    font-size: 1.1em;
-}
-
-.target-name {
-    color: var(--accent-orange);
-    font-weight: 600;
-}
-
-.btn-delete-conversion {
-    background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
-    color: white;
-    border: none;
-    border-radius: 6px;
-    padding: 0.4rem 0.6rem;
-    font-size: 0.9em;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    box-shadow: 0 2px 6px rgba(220, 53, 69, 0.3);
-}
-
-.btn-delete-conversion:hover {
-    background: linear-gradient(135deg, #c82333 0%, #a71e2a 100%);
-    box-shadow: 0 4px 10px rgba(220, 53, 69, 0.4);
-    transform: translateY(-1px);
-}
-
-.conversion-patterns {
-    color: var(--text-light-gray);
-    font-size: 0.9em;
-    font-style: italic;
-}
-
-.test-form {
-    display: flex;
-    gap: 1rem;
-    align-items: center;
-    flex-wrap: wrap;
-}
-
-.test-form input {
-    flex: 1;
-    min-width: 200px;
-    background: var(--secondary-dark);
-    border: 2px solid var(--light-gray);
-    border-radius: 8px;
-    padding: 0.7rem;
-    color: var(--text-white);
-    font-size: 0.95em;
-    transition: border-color 0.3s ease;
-}
-
-.test-form input:focus {
-    outline: none;
-    border-color: var(--accent-orange);
-    box-shadow: 0 0 5px rgba(255, 140, 0, 0.3);
-}
-
-.btn-test-conversion {
-    background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
-    color: white;
-    border: none;
-    border-radius: 8px;
-    padding: 0.7rem 1.2rem;
-    font-weight: 600;
-    font-size: 0.95em;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    box-shadow: 0 2px 8px rgba(23, 162, 184, 0.3);
-}
-
-.btn-test-conversion:hover {
-    background: linear-gradient(135deg, #138496 0%, #0f6674 100%);
-    box-shadow: 0 4px 12px rgba(23, 162, 184, 0.4);
-    transform: translateY(-1px);
-}
-
-.test-result {
-    margin-top: 1rem;
-    padding: 0.8rem;
-    border-radius: 8px;
-    font-weight: 600;
-}
-
-.test-success {
-    color: #28a745;
-    background: rgba(40, 167, 69, 0.1);
-    border: 1px solid rgba(40, 167, 69, 0.3);
-    display: block;
-    padding: 0.8rem;
-    border-radius: 8px;
-}
-
-.test-no-change {
-    color: #17a2b8;
-    background: rgba(23, 162, 184, 0.1);
-    border: 1px solid rgba(23, 162, 184, 0.3);
-    display: block;
-    padding: 0.8rem;
-    border-radius: 8px;
-}
-
-.modal-footer {
-    padding: 1.5rem 2rem;
-    border-top: 1px solid var(--light-gray);
-    display: flex;
-    justify-content: flex-end;
-    background: var(--primary-dark);
-    border-radius: 0 0 13px 13px;
-}
-        flex-wrap: wrap;
-        justify-content: center;
-    }
-
-    .menu .btn {
-        font-size: 16px;
-        padding: 10px 15px;
-    }
-
-    form {
-        margin: 0 5%;
-        grid-template-columns: 1fr 1fr;
-        gap: 10px;
-    }
-
-    .films-container {
-        margin: 1% 5% 1%;
-    }
-
-    .membre-container {
-        margin: 20px 2%;
-        padding: 1rem;
-    }
-
-    .membres-table {
-        font-size: 0.9em;
-    }
-
-    .membres-table th,
-    .membres-table td {
-        padding: 0.5rem;
-    }
-    
-    .pending-films-grid {
-        grid-template-columns: 1fr;
-    }
-    
-    .modal-content {
-        width: 95%;
-        margin: 5% auto;
-    }
-    
-    .modal-body {
-        grid-template-columns: 1fr;
-        gap: 1.5rem;
-    }
-    
-    .detail-row {
-        grid-template-columns: 1fr;
-        gap: 0.5rem;
-    }
-    
-    .modal-buttons {
-        flex-direction: column;
-    }
-    
-    .modal-buttons button {
-        flex: none;
-    }
-}
-
 /* Styles pour les nouvelles colonnes du tableau des membres */
 .membre-email {
     color: var(--text-light-gray);
@@ -2033,18 +1708,23 @@ h2 {
 
 /* Styles pour la colonne des actions */
 .actions-cell {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-    align-items: stretch;
     min-width: 200px;
     position: relative;
     z-index: auto;
-    top: -5rem;
+}
+
+.actions-cell .actions-cell-inner {
+    display: flex;
+    flex-direction: row;
+    gap: 0.5rem;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: nowrap;
+    height: 100%;
 }
 
 .action-dropdown {
-    width: 100%;
+    width: auto;
     position: relative;
     z-index: auto;
 }
@@ -2062,10 +1742,154 @@ h2 {
     position: relative;
 }
 
+.action-dropdown .dropbtn.action-icon-btn {
+    width: 2.5rem;
+    height: 2.5rem;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+    gap: 0;
+}
+
+.action-dropdown .dropbtn.action-icon-btn svg {
+    width: 18px;
+    height: 18px;
+    display: block;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.action-dropdown .dropbtn.action-icon-btn.icon-title {
+    color: var(--accent-orange);
+}
+
+.action-dropdown .dropbtn.action-icon-btn.icon-restrictions {
+    color: #a78bfa;
+}
+
+.action-dropdown .dropbtn.action-icon-btn.icon-email {
+    color: #60a5fa;
+}
+
+.action-dropdown .dropbtn.action-icon-btn.icon-username {
+    color: #34d399;
+}
+
+.action-dropdown .dropbtn.action-icon-btn.icon-delete {
+    color: #f87171;
+}
+
+.action-dropdown .dropbtn.action-icon-btn.icon-cancel-delete {
+    color: #fbbf24;
+}
+
+.actions-cell.pending-deletion .action-dropdown .dropbtn {
+    opacity: 0.45;
+    pointer-events: none;
+}
+
+.membres-table tbody tr.pending-deletion-row td {
+    position: relative;
+}
+
+.membres-table tbody tr.pending-deletion-row td::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(248, 113, 113, 0.32);
+    border-top: 1px solid rgba(248, 113, 113, 0.35);
+    border-bottom: 1px solid rgba(248, 113, 113, 0.35);
+    z-index: 5;
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+}
+
+.membres-table tbody tr.pending-deletion-row td:first-child::after {
+    border-left: 1px solid rgba(248, 113, 113, 0.35);
+    border-top-left-radius: 12px;
+    border-bottom-left-radius: 12px;
+}
+
+.membres-table tbody tr.pending-deletion-row td:last-child::after {
+    border-right: 1px solid rgba(248, 113, 113, 0.35);
+    border-top-right-radius: 12px;
+    border-bottom-right-radius: 12px;
+}
+
+.membres-table tbody tr.pending-deletion-row:hover {
+    background: var(--tertiary-dark);
+    box-shadow: none;
+}
+
+.membres-table tbody tr.pending-deletion-row td > *:not(.deletion-row-ui) {
+    opacity: 0.18;
+    filter: blur(0.6px);
+}
+
+.membres-table tbody tr.pending-deletion-row {
+    pointer-events: none;
+}
+
+.deletion-row-ui {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    z-index: 6;
+    pointer-events: auto;
+}
+
+.deletion-row-ui .deletion-row-clock {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #f87171;
+    font-weight: 800;
+    font-size: 1.2em;
+}
+
+.deletion-row-ui .deletion-row-clock svg {
+    width: 30px;
+    height: 30px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.cancel-delete-btn {
+    background: rgba(0, 0, 0, 0.15);
+    color: #ffe6e6;
+    border: 1px solid rgba(248, 113, 113, 0.55);
+    border-radius: 10px;
+    padding: 8px 10px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.cancel-delete-btn:hover {
+    background: rgba(248, 113, 113, 0.18);
+    border-color: rgba(248, 113, 113, 0.9);
+}
+
 .action-dropdown .dropdown-content {
-    width: 100%;
+    width: auto;
     min-width: 180px;
     z-index: 100001 !important;
+    position: fixed;
+    right: auto;
+    margin-top: 0;
 }
 
 /* Amélioration du z-index pour les dropdowns */

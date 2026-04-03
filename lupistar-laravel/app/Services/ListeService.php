@@ -142,7 +142,8 @@ class ListeService
         $query = Film::query()
             ->from('films')
             ->with(['studio', 'pays'])
-            ->where('films.categorie', $category);
+            ->where('films.categorie', $category)
+            ->select('films.*');
 
         if ($onlyMyList) {
             $query
@@ -150,8 +151,21 @@ class ListeService
                     $join->on('films.id', '=', 'mfl.films_id')
                         ->where('mfl.membres_id', '=', $userId);
                 })
-                ->select('films.*')
                 ->selectRaw('mfl.note as user_note');
+        } else {
+            $avgNotesSub = DB::table('membres_films_list')
+                ->select([
+                    'films_id',
+                    DB::raw('AVG(note) as note_moyenne_raw'),
+                ])
+                ->whereNotNull('note')
+                ->groupBy('films_id');
+
+            $query
+                ->leftJoinSub($avgNotesSub, 'avg_notes', function ($join) {
+                    $join->on('films.id', '=', 'avg_notes.films_id');
+                })
+                ->addSelect(DB::raw('ROUND(avg_notes.note_moyenne_raw, 2) as note_moyenne_global'));
         }
 
         $recherche = trim((string) ($filters['recherche'] ?? ''));
@@ -175,8 +189,18 @@ class ListeService
         }
 
         $note = trim((string) ($filters['note'] ?? ''));
-        if ($note !== '' && is_numeric($note)) {
-            $query->where('films.note_moyenne', '>=', (float) $note);
+        if ($note === 'sans_note') {
+            if ($onlyMyList) {
+                $query->whereNull('mfl.note');
+            } else {
+                $query->whereNull('avg_notes.note_moyenne_raw');
+            }
+        } elseif ($note !== '' && is_numeric($note)) {
+            if ($onlyMyList) {
+                $query->where('mfl.note', '>=', (float) $note);
+            } else {
+                $query->where('avg_notes.note_moyenne_raw', '>=', (float) $note);
+            }
         }
 
         $pays = trim((string) ($filters['pays'] ?? ''));

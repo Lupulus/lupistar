@@ -22,7 +22,7 @@
             </div>
             <div class="info-group">
                 <label>Titre</label>
-                <input type="text" value="{{ $titre }}" disabled>
+                <span class="membre-titre titre-{{ strtolower(str_replace('-', '-', $titre)) }}">{{ $titre }}</span>
             </div>
             @if(session('status'))
                 <div class="message success">{{ session('status') }}</div>
@@ -96,12 +96,12 @@
                     <span class="stat-label">Films vus</span>
                 </div>
                 <div class="stat-card">
-                    <span class="stat-number">{{ $best_author ?? 'Aucun' }}</span>
-                    <span class="stat-label">Auteur favori</span>
-                </div>
-                <div class="stat-card">
                     <span class="stat-number">{{ $avg_rating !== null ? number_format($avg_rating, 1) : '0.0' }}/10</span>
                     <span class="stat-label">Note moyenne</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-number">{{ $rated_films }}</span>
+                    <span class="stat-label">Films notés</span>
                 </div>
                 <div class="stat-card">
                     <span class="stat-number">{{ $approved_films }}</span>
@@ -205,7 +205,7 @@
 
         function renderNotificationMessage(message) {
             const escaped = escapeHtml(message);
-            return escaped.replace(/(https?:\/\/[^\s<]+)/g, (url) => `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`);
+            return escaped.replace(/(https?:\/\/[^\s<]+)/g, (url) => `<a href="${url}">${url}</a>`);
         }
 
         async function loadCategoriesPreferences() {

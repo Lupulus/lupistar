@@ -39,7 +39,7 @@
                 <div class="statistics-section">
                     <div class="stats-grid">
                         <div class="stat-item">
-                            <span class="stat-label">Nombre de</span>
+                            <span class="stat-label">Nombre de films</span>
                             <span class="stat-value" id="stat-animation">-</span>
                         </div>
                         <div class="stat-item">
@@ -80,6 +80,7 @@
                         <label for="note-filter">Filtrer par Note (moyenne):</label>
                         <select id="note-filter" name="note">
                             <option value="">Toutes les notes</option>
+                            <option value="sans_note" @selected(request('note') === 'sans_note')>Sans note</option>
                             @for ($i = 1; $i <= 10; $i++)
                                 <option value="{{ $i }}" @selected((string) request('note') === (string) $i)>{{ $i }} et plus</option>
                             @endfor

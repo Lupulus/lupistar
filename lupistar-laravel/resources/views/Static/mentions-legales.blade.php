@@ -52,6 +52,11 @@
                     totale ou partielle, de tout ou partie des éléments du site est interdite,
                     sauf autorisation écrite préalable.
                 </p>
+                <p>
+                    Certaines informations et contenus liés aux films (données, résumés, visuels) peuvent provenir de
+                    <a href="https://www.themoviedb.org/" target="_blank" rel="noopener noreferrer">The Movie Database (TMDb)</a>.
+                    Les marques et contenus associés restent la propriété de leurs ayants droit respectifs.
+                </p>
             </div>
 
             <div class="section">
@@ -63,6 +68,13 @@
                 <p>
                     Le site lupistar.fr contient des liens hypertextes vers d'autres sites,
                     mais n'assume aucune responsabilité quant à leur contenu.
+                </p>
+                <p>
+                    Les données de films peuvent être fournies par
+                    <a href="https://www.themoviedb.org/" target="_blank" rel="noopener noreferrer">The Movie Database (TMDb)</a>.
+                    Ce site utilise l'API TMDb mais n'est pas approuvé ni certifié par TMDb.
+                    Merci à TMDb de fournir ces données.
+                    Les informations peuvent également provenir de recherches manuelles.
                 </p>
             </div>
 

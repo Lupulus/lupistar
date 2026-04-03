@@ -10,7 +10,17 @@
         $currentUserId = is_numeric(session('user_id')) ? (int) session('user_id') : null;
         $currentTitre = (string) session('titre', 'Membre');
         $isAdmin = in_array($currentTitre, ['Admin', 'Super-Admin'], true);
-        $canManageDiscussion = $currentUserId && ($isAdmin || $currentUserId === (int) $discussion->author_id);
+        $restrictionList = [];
+        if ($currentUserId) {
+            $raw = (string) (\DB::table('membres')->where('id', (int) $currentUserId)->value('restriction') ?? '');
+            $restrictionList = array_values(array_filter(array_map(static fn ($v) => trim((string) $v), explode(',', $raw)), static fn ($v) => $v !== '' && $v !== 'Aucune'));
+        }
+        $canWrite = $isLoggedIn && !in_array('Forum Écriture Off', $restrictionList, true);
+        $canManageDiscussion = $canWrite && $currentUserId && ($isAdmin || $currentUserId === (int) $discussion->author_id);
+        $commentById = [];
+        foreach ($comments as $cc) {
+            $commentById[(string) ($cc->id ?? '')] = $cc;
+        }
     @endphp
 
     <div class="forum-page">
@@ -22,23 +32,26 @@
             <span>{{ $discussion->titre }}</span>
         </div>
 
-        <div class="forum-header">
-            <div class="forum-title">
-                <h1>{{ $discussion->titre }}</h1>
-                <p>👤 {{ $discussion->author?->username ?? '—' }} · 🕒 {{ \Carbon\Carbon::parse($discussion->created_at)->locale('fr')->diffForHumans() }} · 👁️ {{ (int) ($discussion->views ?? 0) }}</p>
-            </div>
-            @if($canManageDiscussion)
-                <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:10px;">
-                    <button class="forum-button secondary" type="button" id="editDiscussionBtn">Modifier</button>
-                    <form action="{{ route('forum.discussion.delete', ['id' => $discussion->id]) }}" method="post" style="margin:0;">
-                        @csrf
-                        <button class="forum-button" type="submit" onclick="return confirm('Supprimer ce topic ?')">Supprimer</button>
-                    </form>
+        <div class="forum-card forum-discussion-card">
+            <div class="forum-discussion-head">
+                <div class="forum-title">
+                    <h1 style="margin:0;">{{ $discussion->titre }}</h1>
+                    <div class="forum-topic-meta" style="margin-top:10px;">
+                        <span class="forum-pill">👤 {{ $discussion->author?->username ?? '—' }}</span>
+                        <span class="forum-pill">🕒 <span class="js-timeago" data-iso="{{ \Carbon\Carbon::parse($discussion->created_at)->toIso8601String() }}">{{ \Carbon\Carbon::parse($discussion->created_at)->locale('fr')->diffForHumans() }}</span></span>
+                        <span class="forum-pill">👁️ {{ (int) ($discussion->views ?? 0) }}</span>
+                    </div>
                 </div>
-            @endif
-        </div>
-
-        <div class="forum-card">
+                @if($canManageDiscussion)
+                    <div class="forum-discussion-actions">
+                        <button class="forum-button secondary" type="button" id="editDiscussionBtn">Modifier</button>
+                        <form action="{{ route('forum.discussion.delete', ['id' => $discussion->id]) }}" method="post" style="margin:0;">
+                            @csrf
+                            <button class="forum-button" type="submit" onclick="return confirm('Supprimer ce topic ?')">Supprimer</button>
+                        </form>
+                    </div>
+                @endif
+            </div>
             <div class="forum-content">{!! $discussion->description_html !!}</div>
         </div>
 
@@ -74,15 +87,27 @@
             @forelse($comments as $c)
                 @php
                     $avatar = $c->author?->photo_profil ? asset($c->author->photo_profil) : asset('img/img-profile/profil.png');
-                    $canManageComment = $currentUserId && ($isAdmin || $currentUserId === (int) $c->author_id);
+                    $canManageComment = $canWrite && $currentUserId && ($isAdmin || $currentUserId === (int) $c->author_id);
+                    $parentId = (string) ($c->parent_id ?? '');
+                    $parent = $parentId !== '' ? ($commentById[$parentId] ?? null) : null;
+                    $parentUsername = $parent?->author?->username ?? '';
                 @endphp
-                <div class="forum-comment" id="comment-{{ $c->id }}" data-comment-id="{{ $c->id }}">
+                <div class="forum-comment {{ $parentId !== '' ? 'is-reply' : '' }}" id="comment-{{ $c->id }}" data-comment-id="{{ $c->id }}" data-parent-id="{{ $parentId }}" data-author="{{ $c->author?->username ?? '—' }}">
                     <img class="forum-avatar" src="{{ $avatar }}" alt="Avatar">
                     <div>
                         <div class="forum-comment-head">
                             <div class="forum-comment-user">{{ $c->author?->username ?? '—' }}</div>
-                            <div class="forum-comment-date">{{ \Carbon\Carbon::parse($c->created_at)->locale('fr')->diffForHumans() }}</div>
+                            <div class="forum-comment-date"><span class="js-timeago" data-iso="{{ \Carbon\Carbon::parse($c->created_at)->toIso8601String() }}">{{ \Carbon\Carbon::parse($c->created_at)->locale('fr')->diffForHumans() }}</span></div>
                         </div>
+                        @if($parentId !== '' && $parentUsername !== '')
+                            <div class="forum-reply-to">
+                                ↪ Réponse à <a href="#comment-{{ $parentId }}">@{{ $parentUsername }}</a>
+                            </div>
+                        @elseif($parentId === '')
+                            <div class="forum-reply-to is-topic">
+                                💬 Réponse au topic
+                            </div>
+                        @endif
                         <div class="forum-content" id="comment-view-{{ $c->id }}">{!! $c->content_html !!}</div>
                         @if($canManageComment)
                             <form action="{{ route('forum.comment.update', ['id' => $c->id]) }}" method="post" id="comment-edit-form-{{ $c->id }}" style="display:none;margin-top:10px;">
@@ -112,7 +137,7 @@
                                 <span>👍</span>
                                 <span class="count" id="like-count-{{ $c->id }}">{{ (int) ($c->likes_count ?? 0) }}</span>
                             </button>
-                            @if($isLoggedIn)
+                            @if($canWrite)
                                 <button class="forum-editor-btn" type="button" data-reply-to="{{ $c->id }}">Répondre</button>
                             @endif
                             @if($canManageComment)
@@ -134,11 +159,14 @@
             <h2 style="margin: 0 0 8px; color: var(--text-white);">Répondre</h2>
             @if(! $isLoggedIn)
                 <div class="forum-empty">Connecte-toi pour répondre.</div>
+            @elseif(! $canWrite)
+                <div class="forum-empty">Ton compte est restreint : tu ne peux plus écrire/répondre sur le forum.</div>
             @else
                 <form action="{{ route('forum.comment.store') }}" method="post" id="commentForm">
                     @csrf
                     <input type="hidden" name="discussion_id" value="{{ $discussion->id }}">
                     <input type="hidden" name="parent_id" id="parent_id" value="">
+                    <div class="forum-reply-context" id="replyContext" style="display:none;"></div>
 
                     <div class="forum-editor-toolbar">
                         <button class="forum-editor-btn" type="button" data-target="content" data-cmd="bold">Gras</button>
@@ -257,8 +285,17 @@
                 const parentId = replyBtn.getAttribute('data-reply-to');
                 const parentInput = document.getElementById('parent_id');
                 const cancel = document.getElementById('cancelReply');
+                const replyContext = document.getElementById('replyContext');
                 if (parentInput) parentInput.value = parentId || '';
                 cancel && (cancel.style.display = 'inline-flex');
+                if (replyContext) {
+                    const parentEl = parentId ? document.getElementById('comment-' + parentId) : null;
+                    const author = parentEl?.getAttribute('data-author') || '';
+                    replyContext.style.display = 'block';
+                    replyContext.innerHTML = author
+                        ? `↪ Réponse à <a href="#comment-${escapeHtml(parentId)}">@${escapeHtml(author)}</a>`
+                        : `↪ Réponse à <a href="#comment-${escapeHtml(parentId)}">ce message</a>`;
+                }
                 activeTextarea = document.getElementById('content');
                 activeTextarea && activeTextarea.focus();
                 const anchor = document.getElementById('reply');
@@ -295,9 +332,45 @@
         const cancelReply = document.getElementById('cancelReply');
         cancelReply && cancelReply.addEventListener('click', () => {
             const parentInput = document.getElementById('parent_id');
+            const replyContext = document.getElementById('replyContext');
             parentInput && (parentInput.value = '');
             cancelReply.style.display = 'none';
+            replyContext && (replyContext.style.display = 'none');
+            replyContext && (replyContext.innerHTML = '');
         });
+
+        function escapeHtml(s) {
+            return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+        }
+
+        function timeAgoFr(dateStr) {
+            const date = new Date(String(dateStr || ''));
+            if (isNaN(date.getTime())) return '';
+            const diff = date.getTime() - Date.now();
+            const sec = Math.round(diff / 1000);
+            const abs = Math.abs(sec);
+            const rtf = new Intl.RelativeTimeFormat('fr', { numeric: 'auto' });
+            if (abs < 60) return rtf.format(sec, 'second');
+            const min = Math.round(sec / 60);
+            if (Math.abs(min) < 60) return rtf.format(min, 'minute');
+            const hour = Math.round(min / 60);
+            if (Math.abs(hour) < 24) return rtf.format(hour, 'hour');
+            const day = Math.round(hour / 24);
+            if (Math.abs(day) < 30) return rtf.format(day, 'day');
+            const month = Math.round(day / 30);
+            if (Math.abs(month) < 12) return rtf.format(month, 'month');
+            const year = Math.round(month / 12);
+            return rtf.format(year, 'year');
+        }
+
+        function updateTimeAgo(root) {
+            const scope = root || document;
+            scope.querySelectorAll('.js-timeago[data-iso]').forEach(el => {
+                const iso = el.getAttribute('data-iso') || '';
+                const s = timeAgoFr(iso);
+                if (s) el.textContent = s;
+            });
+        }
 
         const modal = document.getElementById('forumFilmModal');
         const modalClose = document.getElementById('forumFilmModalClose');
@@ -346,7 +419,8 @@
                 const year = item.date_sortie ? ` (${item.date_sortie})` : '';
                 div.textContent = `${item.nom_film}${year}`;
                 div.addEventListener('click', () => {
-                    const token = `[film:${item.id}:${item.nom_film}]`;
+                    const label = `${item.nom_film}${year}`;
+                    const token = `[film:${item.id}:${label}]`;
                     if (activeTextarea) insertRaw(activeTextarea, token);
                     closeFilmModal();
                 });
@@ -384,5 +458,8 @@
         cancelEditDiscussionBtn && cancelEditDiscussionBtn.addEventListener('click', () => {
             editDiscussionCard && (editDiscussionCard.style.display = 'none');
         });
+
+        updateTimeAgo(document);
+        setInterval(() => updateTimeAgo(document), 30000);
     </script>
 @endsection

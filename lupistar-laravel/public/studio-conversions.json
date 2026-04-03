@@ -1,4 +1,57 @@
 {
-  "inconnu": 1,
-  "unknown": 1
+  "conversions": {
+    "inconnu": {
+      "patterns": [
+        "inconnu",
+        "unknown",
+        "unk",
+        "n/a",
+        "na",
+        "?",
+        "-"
+      ],
+      "target": "Inconnu"
+    },
+    "dreamworks-animation": {
+      "patterns": [
+        "dreamworks",
+        "dreamworks animation",
+        "dreamworksanimation",
+        "dream works animation"
+      ],
+      "target": "DreamWorks Animation"
+    },
+    "studiocanal": {
+      "patterns": [
+        "studiocanal",
+        "studio canal"
+      ],
+      "target": "Studiocanal"
+    },
+    "tezuka-productions": {
+      "patterns": [
+        "tezuka",
+        "tezuka productions",
+        "tezuka production"
+      ],
+      "target": "Tezuka Productions"
+    },
+    "toei-animation": {
+      "patterns": [
+        "toei",
+        "toei animation"
+      ],
+      "target": "Toei Animation"
+    },
+    "walt-disney": {
+      "patterns": [
+        "walt disney",
+        "walt-disney",
+        "walt disney pictures",
+        "walt disney animation studios",
+        "walt disney studios"
+      ],
+      "target": "Walt Disney"
+    }
+  }
 }

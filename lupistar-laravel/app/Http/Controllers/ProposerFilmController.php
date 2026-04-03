@@ -9,6 +9,7 @@ use App\Models\SousGenre;
 use App\Models\Studio;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 
 class ProposerFilmController extends Controller
@@ -36,6 +37,11 @@ class ProposerFilmController extends Controller
         }
 
         $sousGenres = SousGenre::query()->orderBy('nom')->pluck('nom', 'id')->toArray();
+        foreach ($sousGenres as $id => $nom) {
+            if (in_array(mb_strtolower(trim((string) $nom)), ['animation familiale', 'animation familiales'], true)) {
+                $sousGenres[$id] = 'Familial';
+            }
+        }
         $studios = Studio::query()->orderBy('nom')->pluck('nom', 'id')->toArray();
         $auteurs = Auteur::query()->orderBy('nom')->pluck('nom', 'id')->toArray();
         $pays = Pays::query()->orderBy('nom')->pluck('nom', 'id')->toArray();
@@ -116,9 +122,11 @@ class ProposerFilmController extends Controller
         }
 
         $data = $request->validate([
-            'nom_film' => ['required', 'string', 'max:50'],
+            'nom_film' => ['required', 'string', 'max:75'],
             'categorie' => ['required', 'in:Film,Animation,Anime,Série,Série d\'Animation'],
-            'anime_type' => ['nullable', 'in:Film,Série'],
+            'anime_type' => ['nullable', 'in:Film,Série', 'required_if:categorie,Anime'],
+            'saison_detaillee' => ['nullable', 'boolean'],
+            'num_saison' => ['nullable', 'integer', 'min:1', 'max:100'],
             'date_sortie' => ['required', 'integer', 'between:1900,2099'],
             'description' => ['nullable', 'string', 'max:400'],
             'ordre_suite' => ['nullable', 'integer', 'min:1', 'max:25'],
@@ -131,7 +139,8 @@ class ProposerFilmController extends Controller
             'pays_id' => ['required', 'integer'],
             'sous_genres' => ['required', 'array', 'min:1'],
             'sous_genres.*' => ['integer'],
-            'image' => ['required', 'file', 'mimes:jpeg,jpg,png,webp', 'max:5120'],
+            'image' => ['nullable', 'file', 'mimes:jpeg,jpg,png,webp', 'max:5120'],
+            'image_url' => ['nullable', 'url'],
         ]);
 
         $nomFilm = $data['nom_film'];
@@ -141,6 +150,15 @@ class ProposerFilmController extends Controller
         $animeType = (string) ($data['anime_type'] ?? '');
 
         $isSerie = in_array($categorie, ['Série', "Série d'Animation"], true) || ($categorie === 'Anime' && $animeType === 'Série');
+        $isSaisonDetaillee = $isSerie && $request->boolean('saison_detaillee');
+        if ($isSaisonDetaillee) {
+            $numSaison = $data['num_saison'] ?? null;
+            if (! is_numeric($numSaison) || (int) $numSaison <= 0) {
+                return back()->withErrors(['num_saison' => 'Le numéro de la saison est requis si "Saison détaillés" est coché.'])->withInput();
+            }
+            $data['saison'] = (int) $numSaison;
+        }
+
         if ($isSerie) {
             $saison = $data['saison'] ?? 1;
             $nbrEpisode = $data['nbrEpisode'] ?? null;
@@ -154,13 +172,30 @@ class ProposerFilmController extends Controller
             $ordreSuite = $data['ordre_suite'] ?? 1;
         }
 
-        $existsFilms = DB::table('films')->whereRaw('LOWER(nom_film) = ?', [Str::lower($nomFilm)])->exists();
-        if ($existsFilms) {
-            return back()->withErrors(['nom_film' => 'Ce film existe déjà dans la base de données.'])->withInput();
+        $existsFilmsQuery = DB::table('films')
+            ->whereRaw('LOWER(nom_film) = ?', [Str::lower($nomFilm)])
+            ->where('date_sortie', $dateSortie);
+        if ($isSerie) {
+            $existsFilmsQuery->where('saison', (int) ($saison ?? 1))->whereNull('ordre_suite');
+        } else {
+            $existsFilmsQuery->where('ordre_suite', (int) ($ordreSuite ?? 1))->whereNull('saison');
         }
-        $existsTemp = DB::table('films_temp')->whereRaw('LOWER(nom_film) = ?', [Str::lower($nomFilm)])->where('statut', 'en_attente')->exists();
+        $existsFilms = $existsFilmsQuery->exists();
+        if ($existsFilms) {
+            return back()->withErrors(['nom_film' => 'Ce film existe déjà dans la base de données (même titre et même année).'])->withInput();
+        }
+        $existsTempQuery = DB::table('films_temp')
+            ->whereRaw('LOWER(nom_film) = ?', [Str::lower($nomFilm)])
+            ->where('date_sortie', $dateSortie)
+            ->where('statut', 'en_attente');
+        if ($isSerie) {
+            $existsTempQuery->where('saison', (int) ($saison ?? 1))->whereNull('ordre_suite');
+        } else {
+            $existsTempQuery->where('ordre_suite', (int) ($ordreSuite ?? 1))->whereNull('saison');
+        }
+        $existsTemp = $existsTempQuery->exists();
         if ($existsTemp) {
-            return back()->withErrors(['nom_film' => 'Ce film a déjà été proposé et est en attente.'])->withInput();
+            return back()->withErrors(['nom_film' => 'Ce film a déjà été proposé et est en attente (même titre et même année).'])->withInput();
         }
 
         $studioSelectValue = $request->has('studio_id') ? $request->input('studio_id') : $request->input('studio_select');
@@ -173,18 +208,80 @@ class ProposerFilmController extends Controller
         }
         $paysId = $request->has('pays_id') ? (int) $request->input('pays_id') : (int) $this->getDefaultOrInsert('pays', $request->string('pays_select')->toString(), $request->string('nouveau_pays')->toString());
 
-        $studioId = $this->getDefaultOrInsert('studios', is_string($studioSelectValue) ? $studioSelectValue : null, $request->string('nouveau_studio')->toString(), $categorie);
-        $auteurId = $this->getDefaultOrInsert('auteurs', is_string($auteurSelectValue) ? $auteurSelectValue : null, $request->string('nouveau_auteur')->toString(), $categorie);
+        $studioId = null;
+        $nouveauStudio = null;
+        if (trim($studioSelectValue) === 'autre') {
+            $nouveauStudio = $this->convertStudio($request->string('nouveau_studio')->toString());
+            if (trim($nouveauStudio) === '') {
+                return back()->withErrors(['nouveau_studio' => 'Veuillez renseigner un studio.'])->withInput();
+            }
+        } elseif (is_numeric($studioSelectValue)) {
+            $studioId = (int) $studioSelectValue;
+        } else {
+            $studioId = 1;
+        }
+
+        $auteurId = null;
+        $nouveauAuteur = null;
+        if (trim($auteurSelectValue) === 'autre') {
+            $nouveauAuteur = trim($request->string('nouveau_auteur')->toString());
+            if ($nouveauAuteur === '') {
+                return back()->withErrors(['nouveau_auteur' => 'Veuillez renseigner un auteur.'])->withInput();
+            }
+        } elseif (is_numeric($auteurSelectValue)) {
+            $auteurId = (int) $auteurSelectValue;
+        } else {
+            $auteurId = 1;
+        }
 
         $imagePath = null;
-        $uploaded = $request->file('image');
-        $ext = Str::lower($uploaded->getClientOriginalExtension());
-        $safeName = $this->sanitizeFileBase($nomFilm);
-        $num = $isSerie && $saison ? $saison : ($ordreSuite ?? 1);
-        $timestamp = time();
-        $relative = "img-temp/{$dateSortie}-{$safeName}_{$num}_user{$userId}_{$timestamp}.{$ext}";
-        $uploaded->move(public_path('img-temp'), basename($relative));
-        $imagePath = $relative;
+        if ($request->hasFile('image')) {
+            $uploaded = $request->file('image');
+            $ext = Str::lower($uploaded->getClientOriginalExtension());
+            $safeName = $this->sanitizeFileBase($nomFilm);
+            $num = $isSerie && $saison ? $saison : ($ordreSuite ?? 1);
+            $timestamp = time();
+            $relative = "img-temp/{$dateSortie}-{$safeName}_{$num}_user{$userId}_{$timestamp}.{$ext}";
+            $uploaded->move(public_path('img-temp'), basename($relative));
+            $imagePath = $relative;
+        } elseif ($request->filled('image_url')) {
+            $url = (string) $request->input('image_url');
+            if (! str_starts_with($url, 'http')) {
+                return back()->withErrors(['image_url' => "Le lien de l'image est invalide."])->withInput();
+            }
+            try {
+                $res = Http::timeout(10)->get($url);
+                if (! $res->ok()) {
+                    return back()->withErrors(['image_url' => "Impossible de télécharger l'image fournie."])->withInput();
+                }
+                $body = $res->body();
+                if (! $body) {
+                    return back()->withErrors(['image_url' => 'Image vide ou invalide.'])->withInput();
+                }
+                $contentType = (string) $res->header('Content-Type', 'image/jpeg');
+                $ext = 'jpg';
+                if (preg_match('/image\\/(jpeg|jpg|png|gif|webp)/i', $contentType, $m)) {
+                    $ext = Str::lower($m[1]);
+                }
+                if (! in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'webp'], true)) {
+                    $ext = 'jpg';
+                }
+                $safeName = $this->sanitizeFileBase($nomFilm);
+                $num = $isSerie && $saison ? $saison : ($ordreSuite ?? 1);
+                $timestamp = time();
+                $relative = "img-temp/{$dateSortie}-{$safeName}_{$num}_user{$userId}_{$timestamp}.{$ext}";
+                $abs = public_path($relative);
+                if (! is_dir(dirname($abs))) {
+                    @mkdir(dirname($abs), 0775, true);
+                }
+                @file_put_contents($abs, $body);
+                $imagePath = $relative;
+            } catch (\Throwable $e) {
+                return back()->withErrors(['image_url' => "Erreur lors du téléchargement de l'image."])->withInput();
+            }
+        } else {
+            return back()->withErrors(['image' => 'Veuillez fournir une image ou un lien valide.'])->withInput();
+        }
 
         $filmTemp = new FilmTemp;
         $filmTemp->nom_film = $nomFilm;
@@ -194,9 +291,12 @@ class ProposerFilmController extends Controller
         $filmTemp->ordre_suite = $ordreSuite;
         $filmTemp->saison = $saison;
         $filmTemp->nbrEpisode = $nbrEpisode;
+        $filmTemp->saison_detaillee = $isSerie ? (int) $isSaisonDetaillee : 0;
         $filmTemp->date_sortie = $dateSortie;
         $filmTemp->studio_id = $studioId;
         $filmTemp->auteur_id = $auteurId;
+        $filmTemp->nouveau_studio = $nouveauStudio;
+        $filmTemp->nouveau_auteur = $nouveauAuteur;
         $filmTemp->pays_id = $paysId;
         $filmTemp->propose_par = $userId;
         $filmTemp->statut = 'en_attente';

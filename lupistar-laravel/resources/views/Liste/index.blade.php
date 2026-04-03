@@ -25,7 +25,7 @@
                 <div class="statistics-section">
                     <div class="stats-grid">
                         <div class="stat-item">
-                            <span class="stat-label">Nombre de</span>
+                            <span class="stat-label">Nombre de Films</span>
                             <span class="stat-value" id="stat-animation">-</span>
                         </div>
                         <div class="stat-item">
