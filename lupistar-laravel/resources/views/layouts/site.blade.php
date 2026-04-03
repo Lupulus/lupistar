@@ -214,6 +214,33 @@
             outline: 2px solid #ff6b35;
             outline-offset: 2px;
         }
+
+        .custom-popup-field {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .custom-popup-input {
+            width: 100%;
+            padding: 12px 14px;
+            border-radius: 10px;
+            background: rgba(0, 0, 0, 0.25);
+            border: 1px solid #666;
+            color: #fff;
+            font-size: 15px;
+        }
+
+        .custom-popup-input:focus {
+            outline: 2px solid #ff6b35;
+            outline-offset: 2px;
+            border-color: #ff6b35;
+        }
+
+        .custom-popup-error {
+            color: #ffb4b4;
+            font-size: 13px;
+        }
     </style>
 
     <div id="custom-popup-overlay" class="custom-popup-overlay">
@@ -239,6 +266,9 @@
     <script>
         document.addEventListener('DOMContentLoaded', async () => {
             try {
+                const isLoggedIn = @json((bool) session()->get('user_id'));
+                if (!isLoggedIn) return;
+
                 const res = await fetch(@json(route('privacy.status')), { credentials: 'same-origin' });
                 const data = await res.json();
                 if (!data?.should_show) return;
@@ -259,19 +289,21 @@
                     confirmClass: 'primary',
                 });
 
-                if (!confirmed) return;
-
                 const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
-                await fetch(@json(route('privacy.ack')), {
-                    method: 'POST',
-                    credentials: 'same-origin',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': token,
-                        'Accept': 'application/json',
-                    },
-                    body: JSON.stringify({ version: data.current_version }),
-                });
+                if (token) {
+                    await fetch(@json(route('privacy.ack')), {
+                        method: 'POST',
+                        credentials: 'same-origin',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': token,
+                            'Accept': 'application/json',
+                        },
+                        body: JSON.stringify({ version: data.current_version }),
+                    });
+                }
+
+                if (!confirmed) return;
 
                 if (data.policy_url) {
                     window.location.href = data.policy_url;

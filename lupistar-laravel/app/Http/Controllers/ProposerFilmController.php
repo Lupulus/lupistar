@@ -37,6 +37,11 @@ class ProposerFilmController extends Controller
         }
 
         $sousGenres = SousGenre::query()->orderBy('nom')->pluck('nom', 'id')->toArray();
+        foreach ($sousGenres as $id => $nom) {
+            if (in_array(mb_strtolower(trim((string) $nom)), ['animation familiale', 'animation familiales'], true)) {
+                $sousGenres[$id] = 'Familial';
+            }
+        }
         $studios = Studio::query()->orderBy('nom')->pluck('nom', 'id')->toArray();
         $auteurs = Auteur::query()->orderBy('nom')->pluck('nom', 'id')->toArray();
         $pays = Pays::query()->orderBy('nom')->pluck('nom', 'id')->toArray();
@@ -117,9 +122,11 @@ class ProposerFilmController extends Controller
         }
 
         $data = $request->validate([
-            'nom_film' => ['required', 'string', 'max:50'],
+            'nom_film' => ['required', 'string', 'max:75'],
             'categorie' => ['required', 'in:Film,Animation,Anime,Série,Série d\'Animation'],
-            'anime_type' => ['nullable', 'in:Film,Série'],
+            'anime_type' => ['nullable', 'in:Film,Série', 'required_if:categorie,Anime'],
+            'saison_detaillee' => ['nullable', 'boolean'],
+            'num_saison' => ['nullable', 'integer', 'min:1', 'max:100'],
             'date_sortie' => ['required', 'integer', 'between:1900,2099'],
             'description' => ['nullable', 'string', 'max:400'],
             'ordre_suite' => ['nullable', 'integer', 'min:1', 'max:25'],
@@ -143,6 +150,15 @@ class ProposerFilmController extends Controller
         $animeType = (string) ($data['anime_type'] ?? '');
 
         $isSerie = in_array($categorie, ['Série', "Série d'Animation"], true) || ($categorie === 'Anime' && $animeType === 'Série');
+        $isSaisonDetaillee = $isSerie && $request->boolean('saison_detaillee');
+        if ($isSaisonDetaillee) {
+            $numSaison = $data['num_saison'] ?? null;
+            if (! is_numeric($numSaison) || (int) $numSaison <= 0) {
+                return back()->withErrors(['num_saison' => 'Le numéro de la saison est requis si "Saison détaillés" est coché.'])->withInput();
+            }
+            $data['saison'] = (int) $numSaison;
+        }
+
         if ($isSerie) {
             $saison = $data['saison'] ?? 1;
             $nbrEpisode = $data['nbrEpisode'] ?? null;
@@ -240,7 +256,7 @@ class ProposerFilmController extends Controller
                 }
                 $body = $res->body();
                 if (! $body) {
-                    return back()->withErrors(['image_url' => "Image vide ou invalide."])->withInput();
+                    return back()->withErrors(['image_url' => 'Image vide ou invalide.'])->withInput();
                 }
                 $contentType = (string) $res->header('Content-Type', 'image/jpeg');
                 $ext = 'jpg';
@@ -264,7 +280,7 @@ class ProposerFilmController extends Controller
                 return back()->withErrors(['image_url' => "Erreur lors du téléchargement de l'image."])->withInput();
             }
         } else {
-            return back()->withErrors(['image' => "Veuillez fournir une image ou un lien valide."])->withInput();
+            return back()->withErrors(['image' => 'Veuillez fournir une image ou un lien valide.'])->withInput();
         }
 
         $filmTemp = new FilmTemp;
@@ -275,6 +291,7 @@ class ProposerFilmController extends Controller
         $filmTemp->ordre_suite = $ordreSuite;
         $filmTemp->saison = $saison;
         $filmTemp->nbrEpisode = $nbrEpisode;
+        $filmTemp->saison_detaillee = $isSerie ? (int) $isSaisonDetaillee : 0;
         $filmTemp->date_sortie = $dateSortie;
         $filmTemp->studio_id = $studioId;
         $filmTemp->auteur_id = $auteurId;

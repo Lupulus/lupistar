@@ -27,7 +27,7 @@
                 <div class="form-section three-columns">
                     <div class="form-group">
                         <label id="nom_film_label" for="nom_film">Nom du film :</label>
-                        <input type="text" id="nom_film" name="nom_film" placeholder="Nom du film (max 50 caractères)" maxlength="50" required value="{{ old('nom_film') }}">
+                        <input type="text" id="nom_film" name="nom_film" placeholder="Nom du film (max 75 caractères)" maxlength="75" required value="{{ old('nom_film') }}">
                         @error('nom_film')<div id="message-container" class="error"><p>{{ $message }}</p></div>@enderror
                     </div>
                     <div class="form-group">
@@ -47,14 +47,27 @@
                     </div>
                 </div>
 
-                <div id="anime-type-section" class="form-section two-columns" style="display:none;">
-                    <div class="form-group">
+                <div id="season-detail-section" class="form-section three-columns" style="display:none;">
+                    <div class="form-group" id="anime_type_group">
                         <label for="anime_type">Type d'Anime :</label>
                         <select id="anime_type" name="anime_type" onchange="handleAnimeTypeChange()">
                             <option value="">Sélectionnez le type</option>
                             <option value="Film" @selected(old('anime_type') === 'Film')>Film</option>
                             <option value="Série" @selected(old('anime_type') === 'Série')>Série</option>
                         </select>
+                        @error('anime_type')<div id="message-container" class="error"><p>{{ $message }}</p></div>@enderror
+                    </div>
+
+                    <div class="form-group inline" id="saison_detaillee_group" style="display:none;">
+                        <label for="saison_detaillee">Saison détaillés</label>
+                        <input type="checkbox" id="saison_detaillee" name="saison_detaillee" value="1" @checked(old('saison_detaillee'))>
+                        @error('saison_detaillee')<div id="message-container" class="error"><p>{{ $message }}</p></div>@enderror
+                    </div>
+
+                    <div class="form-group" id="num_saison_group" style="display:none;">
+                        <label for="num_saison">Numéro de la saison :</label>
+                        <input type="number" id="num_saison" name="num_saison" min="1" max="100" placeholder="1" value="{{ old('num_saison') }}">
+                        @error('num_saison')<div id="message-container" class="error"><p>{{ $message }}</p></div>@enderror
                     </div>
                 </div>
 
@@ -203,6 +216,7 @@
             tmdbAutofill: @json(route('api.tmdb.autofill')),
         };
         window.tmdbAutofillRoute = proposerRoutes.tmdbAutofill;
+        let lastSaisonDetaillee = null;
 
         document.addEventListener('DOMContentLoaded', function () {
             updateCharCount();
@@ -217,6 +231,23 @@
                 updateStudios();
                 updateAuteurs();
             });
+
+            const saisonDetaillee = document.getElementById('saison_detaillee');
+            if (saisonDetaillee) {
+                saisonDetaillee.addEventListener('change', function () {
+                    handleCategoryChange();
+                });
+            }
+
+            const numSaison = document.getElementById('num_saison');
+            if (numSaison) {
+                numSaison.addEventListener('input', function () {
+                    handleCategoryChange();
+                });
+                numSaison.addEventListener('change', function () {
+                    handleCategoryChange();
+                });
+            }
 
             const form = document.getElementById('filmForm');
             form.addEventListener('submit', function (e) {
@@ -238,16 +269,18 @@
             updateStudios();
             updateAuteurs();
             @if(session('status'))
-                const form = document.getElementById('filmForm');
-                if (form) form.reset();
-                updateCharCount();
-                handleCategoryChange();
-                updateNomFilmLabel();
-                toggleAutreStudio();
-                toggleAutreAuteur();
-                handlePaysChange();
-                updateStudios();
-                updateAuteurs();
+                (function () {
+                    const f = document.getElementById('filmForm');
+                    if (f) f.reset();
+                    updateCharCount();
+                    handleCategoryChange();
+                    updateNomFilmLabel();
+                    toggleAutreStudio();
+                    toggleAutreAuteur();
+                    handlePaysChange();
+                    updateStudios();
+                    updateAuteurs();
+                })();
             @endif
         });
 
@@ -287,14 +320,20 @@
 
         function handleAnimeTypeChange() {
             handleCategoryChange();
+            updateNomFilmLabel();
             updateStudios();
             updateAuteurs();
         }
 
         function handleCategoryChange() {
             const categorieSelect = document.getElementById('categorie');
-            const animeTypeSection = document.getElementById('anime-type-section');
+            const seasonDetailSection = document.getElementById('season-detail-section');
+            const animeTypeGroup = document.getElementById('anime_type_group');
             const animeTypeSelect = document.getElementById('anime_type');
+            const saisonDetailleeGroup = document.getElementById('saison_detaillee_group');
+            const saisonDetailleeCheckbox = document.getElementById('saison_detaillee');
+            const numSaisonGroup = document.getElementById('num_saison_group');
+            const numSaisonInput = document.getElementById('num_saison');
             const ordreSuiteLabel = document.getElementById("ordre_suite_label");
             const ordreSuiteInput = document.getElementById("ordre_suite");
             const saisonLabel = document.getElementById("saison_label");
@@ -303,39 +342,85 @@
             const nbrEpisodeInput = document.getElementById("nbrEpisode");
 
             const categorie = categorieSelect.value;
-            if (categorie === 'Anime') {
-                animeTypeSection.style.display = 'grid';
-            } else {
-                animeTypeSection.style.display = 'none';
-                if (animeTypeSelect) {
+            const isAnime = categorie === 'Anime';
+            const isSerieCategorie = categorie === 'Série' || categorie === "Série d'Animation";
+            const animeType = animeTypeSelect ? animeTypeSelect.value : '';
+            const isAnimeSerie = isAnime && animeType === 'Série';
+            const isSerie = isSerieCategorie || isAnimeSerie;
+
+            if (seasonDetailSection) {
+                seasonDetailSection.style.display = (isAnime || isSerieCategorie) ? 'grid' : 'none';
+            }
+
+            if (animeTypeGroup && animeTypeSelect) {
+                if (isAnime) {
+                    animeTypeGroup.style.display = 'flex';
+                    animeTypeSelect.required = true;
+                } else {
+                    animeTypeGroup.style.display = 'none';
+                    animeTypeSelect.required = false;
                     animeTypeSelect.value = '';
                 }
             }
 
-            const animeType = animeTypeSelect ? animeTypeSelect.value : '';
-            const isSerie = categorie === 'Série' || categorie === "Série d'Animation" || (categorie === 'Anime' && animeType === 'Série');
+            if (saisonDetailleeGroup && saisonDetailleeCheckbox) {
+                saisonDetailleeGroup.style.display = isSerie ? 'grid' : 'none';
+                if (!isSerie) {
+                    saisonDetailleeCheckbox.checked = false;
+                }
+            }
+
+            const isSaisonDetaillee = !!(saisonDetailleeCheckbox && saisonDetailleeCheckbox.checked);
+            if (numSaisonGroup && numSaisonInput) {
+                if (isSerie && isSaisonDetaillee) {
+                    numSaisonGroup.style.display = 'flex';
+                    numSaisonInput.required = true;
+                } else {
+                    numSaisonGroup.style.display = 'none';
+                    numSaisonInput.required = false;
+                    numSaisonInput.value = '';
+                }
+            }
 
             if (ordreSuiteLabel && ordreSuiteInput && saisonLabel && saisonInput && nbrEpisodeLabel && nbrEpisodeInput) {
                 if (isSerie) {
                     ordreSuiteLabel.style.display = "none";
                     ordreSuiteInput.style.display = "none";
-                    saisonLabel.style.display = "block";
-                    saisonInput.style.display = "block";
-                    saisonInput.required = true;
+                    saisonInput.required = false;
                     nbrEpisodeLabel.style.display = "block";
                     nbrEpisodeInput.style.display = "block";
                     nbrEpisodeInput.required = true;
+
+                    if (isSaisonDetaillee) {
+                        saisonLabel.style.display = "none";
+                        saisonInput.style.display = "none";
+                        saisonInput.value = numSaisonInput ? String(numSaisonInput.value || '').trim() : '';
+                    } else {
+                        if (lastSaisonDetaillee === true) {
+                            saisonInput.value = '';
+                        }
+                        saisonLabel.style.display = "block";
+                        saisonInput.style.display = "block";
+                        const sl = document.getElementById("saison_label");
+                        if (sl) sl.textContent = "Nombre de saison :";
+                    }
                 } else {
                     ordreSuiteLabel.style.display = "block";
                     ordreSuiteInput.style.display = "block";
                     saisonLabel.style.display = "none";
                     saisonInput.style.display = "none";
                     saisonInput.required = false;
+                    saisonInput.value = '';
+                    const sl = document.getElementById("saison_label");
+                    if (sl) sl.textContent = "Numéro de saison :";
                     nbrEpisodeLabel.style.display = "none";
                     nbrEpisodeInput.style.display = "none";
                     nbrEpisodeInput.required = false;
+                    nbrEpisodeInput.value = '';
                 }
             }
+
+            lastSaisonDetaillee = isSerie ? isSaisonDetaillee : null;
         }
 
         function updateNomFilmLabel() {
@@ -344,12 +429,13 @@
             const input = document.getElementById("nom_film");
             if (!label || !input) return;
 
-            if (categorie === "Série" || categorie === "Série d'Animation") {
+            const animeType = document.getElementById("anime_type")?.value || '';
+            if (categorie === "Série" || categorie === "Série d'Animation" || (categorie === "Anime" && animeType === "Série")) {
                 label.textContent = "Nom de la série :";
-                input.placeholder = "Nom de la série (max 50 caractères)";
+                input.placeholder = "Nom de la série (max 75 caractères)";
             } else {
                 label.textContent = "Nom du film :";
-                input.placeholder = "Nom du film (max 50 caractères)";
+                input.placeholder = "Nom du film (max 75 caractères)";
             }
         }
 

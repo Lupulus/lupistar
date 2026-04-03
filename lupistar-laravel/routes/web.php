@@ -52,6 +52,8 @@ Route::get('/administration/pending-films', [AdminController::class, 'pendingFil
 Route::post('/administration/add-film', [AdminController::class, 'addFilm'])->name('administration.add-film');
 Route::post('/administration/films/{id}/modify', [AdminController::class, 'modifyFilm'])->name('administration.films.modify');
 Route::post('/administration/films/{id}/delete', [AdminController::class, 'deleteFilm'])->name('administration.films.delete');
+Route::get('/administration/films', [AdminController::class, 'filmsList'])->name('administration.films.list');
+Route::get('/administration/films/{id}', [AdminController::class, 'filmDetails'])->name('administration.films.details');
 Route::get('/administration/studios', [AdminController::class, 'studiosByCategorie'])->name('administration.studios-by-categorie');
 Route::get('/administration/auteurs', [AdminController::class, 'auteursByCategorie'])->name('administration.auteurs-by-categorie');
 Route::get('/administration/autocomplete/studios', [AdminController::class, 'autocompleteStudios'])->name('administration.autocomplete.studios');
@@ -82,6 +84,9 @@ Route::post('/membres/email', [MembresController::class, 'updateEmail'])->name('
 Route::post('/membres/username', [MembresController::class, 'updateUsername'])->name('membres.username');
 Route::post('/membres/warning-reward', [MembresController::class, 'updateWarningReward'])->name('membres.warning-reward');
 Route::post('/membres/promotion', [MembresController::class, 'traiterPromotion'])->name('membres.promotion');
+Route::post('/membres/deletion/request', [MembresController::class, 'requestDeletion'])->name('membres.deletion.request');
+Route::post('/membres/deletion/cancel', [MembresController::class, 'cancelDeletionAdmin'])->name('membres.deletion.cancel.admin');
+Route::get('/membres/deletion/cancel/{token}', [MembresController::class, 'cancelDeletionByToken'])->name('membres.deletion.cancel.link');
 Route::get('/mon-compte', [MonCompteController::class, 'show'])->name('mon-compte');
 Route::post('/mon-compte/email', [MonCompteController::class, 'updateEmail'])->name('mon-compte.update-email');
 Route::post('/mon-compte/password', [MonCompteController::class, 'updatePassword'])->name('mon-compte.update-password');

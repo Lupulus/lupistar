@@ -106,4 +106,3 @@ return new class extends Migration
         DB::statement('ALTER TABLE membres_films_list ALTER COLUMN note SET NOT NULL');
     }
 };
-

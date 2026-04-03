@@ -63,9 +63,127 @@
 
   function setSousGenres(names) {
     if (!Array.isArray(names) || names.length === 0) return;
-    const norm = (s) => String(s).toLowerCase().replace(/\s+/g, ' ').trim();
-    const set = new Set(names.map(norm));
-    const ignore = new Set(['animation','film','série',"série d'animation",'anime']);
+    const norm = (s) => String(s)
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    const normalizeGenreKey = (s) => norm(s)
+      .replace(/[^a-z0-9&]+/g, ' ')
+      .replace(/\s*&\s*/g, ' & ')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    const SIMPLE_MAP = {
+      'action': 'Action',
+      'adventure': 'Aventure',
+      'aventure': 'Aventure',
+      'comedie': 'Comédie',
+      'comedy': 'Comédie',
+      'drama': 'Drame',
+      'drame': 'Drame',
+      'fantasy': 'Fantastique',
+      'fantastique': 'Fantastique',
+      'sci fi': 'Science-fiction',
+      'scifi': 'Science-fiction',
+      'science fiction': 'Science-fiction',
+      'science-fiction': 'Science-fiction',
+      'western': 'Western',
+      'mystery': 'Mystère',
+      'mystere': 'Mystère',
+      'thriller': 'Thriller',
+      'romance': 'Romance',
+      'horror': 'Horreur',
+      'horreur': 'Horreur',
+      'war': 'Guerre',
+      'guerre': 'Guerre',
+      'history': 'Historique',
+      'historique': 'Historique',
+      'crime': 'Policier',
+      'policier': 'Policier',
+      'superhero': 'Super-héros',
+      'super heros': 'Super-héros',
+      'super heros': 'Super-héros',
+      'super-heros': 'Super-héros',
+      'super-heros': 'Super-héros',
+      'documentary': 'Documentaire',
+      'documentaire': 'Documentaire',
+      'sport': 'Sport',
+      'slice of life': 'Slice of life',
+      'mecha': 'Mecha',
+      'cyberpunk': 'Cyberpunk',
+      'conte': 'Conte',
+      'animation musicale': 'Animation musicale',
+      'animation fantastique': 'Animation fantastique',
+      'familial': 'Familial',
+      'animation familiale': 'Familial',
+    };
+
+    const COMBINED_MAP = {
+      'action & adventure': ['Action', 'Aventure'],
+      'action and adventure': ['Action', 'Aventure'],
+      'action et aventure': ['Action', 'Aventure'],
+      'science fiction & fantastique': ['Science-fiction', 'Fantastique'],
+      'sci fi & fantasy': ['Science-fiction', 'Fantastique'],
+      'sci fi and fantasy': ['Science-fiction', 'Fantastique'],
+      'science fiction and fantasy': ['Science-fiction', 'Fantastique'],
+      'science fiction et fantastique': ['Science-fiction', 'Fantastique'],
+    };
+
+    const expandGenres = (arr) => {
+      const out = [];
+      const push = (v) => {
+        const s = String(v || '').trim();
+        if (s !== '') out.push(s);
+      };
+
+      for (const g of arr) {
+        const raw = String(g || '').trim();
+        if (raw === '') continue;
+
+        const combinedKey = normalizeGenreKey(raw).replace(/\s*&\s*/g, ' & ');
+        const mapped = COMBINED_MAP[combinedKey];
+        if (Array.isArray(mapped)) {
+          mapped.forEach(push);
+          continue;
+        }
+
+        if (combinedKey.includes(' & ') || combinedKey.includes(' and ') || combinedKey.includes(' et ') || combinedKey.includes('/')) {
+          const parts = raw
+            .replace(/\s*&\s*/g, ' & ')
+            .replace(/\s+and\s+/gi, ' & ')
+            .replace(/\s+et\s+/gi, ' & ')
+            .split(/\s*&\s*|\/|,/g)
+            .map((p) => p.trim())
+            .filter(Boolean);
+
+          if (parts.length > 1) {
+            for (const p of parts) {
+              const k = normalizeGenreKey(p).replace(/\s*&\s*/g, ' & ');
+              const simple = SIMPLE_MAP[k];
+              if (simple) push(simple);
+              else push(p);
+            }
+            continue;
+          }
+        }
+
+        const simpleKey = normalizeGenreKey(raw);
+        const simple = SIMPLE_MAP[simpleKey];
+        if (simple) push(simple);
+        else push(raw);
+      }
+
+      return out;
+    };
+
+    const expanded = expandGenres(names);
+    const set = new Set(expanded.map(norm));
+    if (set.has('animation familiale')) set.add('familial');
+    if (set.has('familial')) set.add('animation familiale');
+    const ignore = new Set(['animation','film','serie',"serie d'animation",'anime'].map(norm));
     const labels = document.querySelectorAll('#sous-genres-container label.checkbox-label');
     labels.forEach(label => {
       const text = norm(label.textContent || '');
@@ -156,9 +274,10 @@
 
     return false;
   }
-  async function fetchAutofill(query, type, year) {
+  async function fetchAutofill(query, type, year, seasonNumber) {
+    const seasonPart = seasonNumber ? `&season_number=${encodeURIComponent(seasonNumber)}` : '';
     const url = (window.tmdbAutofillRoute || '/api/tmdb/autofill') +
-      `?title=${encodeURIComponent(query)}&type=${encodeURIComponent(type)}${year ? `&year=${year}` : ''}`;
+      `?title=${encodeURIComponent(query)}&type=${encodeURIComponent(type)}${year ? `&year=${year}` : ''}${seasonPart}`;
     const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
     return await res.json();
   }
@@ -167,19 +286,31 @@
     const nom = document.getElementById('nom_film')?.value || '';
     const cat = document.getElementById('categorie')?.value || '';
     const animeType = document.getElementById('anime_type')?.value || '';
+    const saisonDetaillee = !!document.getElementById('saison_detaillee')?.checked;
+    const numSaison = String(document.getElementById('num_saison')?.value || '').trim();
     const yearInput = document.getElementById('date_sortie');
     if (!nom || !cat || !String(yearInput?.value || '').trim()) {
       setStatus('error', 'Veuillez remplir les champs ci-dessus pour tenter le remplissage automatique.');
       return;
     }
+    if (cat === 'Anime' && !String(animeType || '').trim()) {
+      setStatus('error', 'Veuillez sélectionner le type d\'anime avant le remplissage automatique.');
+      return;
+    }
+    const isSerie = cat === 'Série' || cat === "Série d'Animation" || (cat === 'Anime' && animeType === 'Série');
+    if (isSerie && saisonDetaillee && !numSaison) {
+      setStatus('error', 'Veuillez renseigner le numéro de la saison avant le remplissage automatique.');
+      return;
+    }
 
     const type = mapCategoryToType(cat, animeType);
     const year = Number(yearInput?.value || 0) || 0;
+    const seasonNumber = type === 'tv' && isSerie && saisonDetaillee ? Number(numSaison || 0) || 0 : 0;
 
     setStatus('loading', 'Recherche TMDb en cours…');
     let out;
     try {
-      out = await fetchAutofill(nom, type, year);
+      out = await fetchAutofill(nom, type, year, seasonNumber);
     } catch (e) {
       setStatus('error', 'Impossible de contacter TMDb.');
       return;
@@ -220,6 +351,25 @@
     const countriesIso = Array.isArray(d.countries_iso) ? d.countries_iso : [];
     selectCountry(pays, countries, countriesIso);
 
+    if (isSerie) {
+      const saisonInput = document.getElementById('saison');
+      const nbrEpisodeInput = document.getElementById('nbrEpisode');
+
+      if (saisonDetaillee) {
+        const seasonEp = d.season_episode_count;
+        if (seasonEp && nbrEpisodeInput && !String(nbrEpisodeInput.value || '').trim()) {
+          nbrEpisodeInput.value = seasonEp;
+        }
+      } else {
+        if (d.number_of_seasons && saisonInput && !String(saisonInput.value || '').trim()) {
+          saisonInput.value = d.number_of_seasons;
+        }
+        if (d.number_of_episodes && nbrEpisodeInput && !String(nbrEpisodeInput.value || '').trim()) {
+          nbrEpisodeInput.value = d.number_of_episodes;
+        }
+      }
+    }
+
     if (d.poster_url) {
       const imgUrlInput = document.getElementById('image_url');
       if (imgUrlInput) imgUrlInput.value = d.poster_url;
@@ -245,19 +395,17 @@
   function injectButton(formId) {
     const form = document.getElementById(formId);
     if (!form) return;
-    const section = form.querySelector('.form-section.three-columns');
-    if (!section) return;
-    if (section.querySelector('.tmdb-autofill-row2') || section.querySelector('.tmdb-autofill-row3')) return;
+    if (form.querySelector('.tmdb-autofill-row2') || form.querySelector('.tmdb-autofill-row3')) return;
 
     const titleInput = form.querySelector('#nom_film');
     const categorieSelect = form.querySelector('#categorie');
     const dateInput = form.querySelector('#date_sortie');
     if (!titleInput || !categorieSelect || !dateInput) return;
 
-    const titleGroup = titleInput.closest('.form-group');
-    const catGroup = categorieSelect.closest('.form-group');
     const dateGroup = dateInput.closest('.form-group');
-    if (!titleGroup || !catGroup || !dateGroup) return;
+    if (!dateGroup) return;
+
+    const anchor = document.getElementById('season-detail-section') || dateGroup;
 
     const row2 = document.createElement('div');
     row2.className = 'tmdb-autofill-row2';
@@ -276,11 +424,27 @@
     const status = getStatusEl();
     status.style.display = 'none';
 
+    const animeTypeSelect = form.querySelector('#anime_type');
+    const saisonDetaillee = form.querySelector('#saison_detaillee');
+    const numSaison = form.querySelector('#num_saison');
+
     const updatePrereqs = () => {
-      const ok =
+      const baseOk =
         String(titleInput.value || '').trim().length > 0 &&
         String(categorieSelect.value || '').trim().length > 0 &&
         String(dateInput.value || '').trim().length > 0;
+
+      const cat = String(categorieSelect.value || '').trim();
+      const animeType = String(animeTypeSelect?.value || '').trim();
+      const needAnimeType = cat === 'Anime';
+      const animeOk = !needAnimeType || animeType.length > 0;
+
+      const detailChecked = !!saisonDetaillee?.checked;
+      const isSerie = cat === 'Série' || cat === "Série d'Animation" || (cat === 'Anime' && animeType === 'Série');
+      const needSeasonNum = isSerie && detailChecked;
+      const seasonOk = !needSeasonNum || String(numSaison?.value || '').trim().length > 0;
+
+      const ok = baseOk && animeOk && seasonOk;
       btn.disabled = !ok;
       prereq.style.display = ok ? 'none' : 'block';
       if (!ok) {
@@ -300,13 +464,19 @@
     row3.appendChild(prereq);
     row3.appendChild(status);
 
-    dateGroup.insertAdjacentElement('afterend', row2);
+    anchor.insertAdjacentElement('afterend', row2);
     row2.insertAdjacentElement('afterend', row3);
 
     titleInput.addEventListener('input', updatePrereqs);
     categorieSelect.addEventListener('change', updatePrereqs);
     dateInput.addEventListener('input', updatePrereqs);
     dateInput.addEventListener('change', updatePrereqs);
+    if (animeTypeSelect) animeTypeSelect.addEventListener('change', updatePrereqs);
+    if (saisonDetaillee) saisonDetaillee.addEventListener('change', updatePrereqs);
+    if (numSaison) {
+      numSaison.addEventListener('input', updatePrereqs);
+      numSaison.addEventListener('change', updatePrereqs);
+    }
     updatePrereqs();
   }
 

@@ -28,6 +28,10 @@
     position: relative;
 }
 
+.admin-modal-content.large {
+    max-width: 1200px;
+}
+
 .studio-conversions-modal .modal-header {
     position: relative;
     display: flex;

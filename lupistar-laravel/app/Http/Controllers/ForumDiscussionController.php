@@ -8,11 +8,13 @@ use App\Models\ForumDiscussion;
 use App\Services\ForumContentFormatter;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use MongoDB\BSON\ObjectId;
 
 class ForumDiscussionController extends Controller
 {
     public function index(Request $request, string $categoryId)
     {
+        $this->ensureForumAccess($request);
         $q = trim((string) $request->query('q', ''));
         $sort = (string) $request->query('sort', 'activity');
         $filmId = is_numeric($request->query('film_id')) ? (int) $request->query('film_id') : null;
@@ -87,6 +89,8 @@ class ForumDiscussionController extends Controller
 
             $authorMap = [];
             $authorList = collect($discussions)->pluck('author_id')->filter()->map(fn ($v) => (int) $v)->unique()->values()->all();
+            $lastIds = collect($discussions)->pluck('last_comment_by')->filter()->map(fn ($v) => (int) $v)->unique()->values()->all();
+            $authorList = array_values(array_unique(array_merge($authorList, $lastIds)));
             if (! empty($authorList)) {
                 $authorMap = DB::table('membres')
                     ->whereIn('id', $authorList)
@@ -102,10 +106,12 @@ class ForumDiscussionController extends Controller
                 }
                 $d->route_id = (string) $docId;
                 $d->author = (object) ['username' => (string) ($authorMap[(int) ($d->author_id ?? 0)] ?? '—')];
+                $d->last_comment_user = (object) ['username' => (string) ($authorMap[(int) ($d->last_comment_by ?? 0)] ?? '')];
                 $count = (int) ($countsById[(string) $docId] ?? 0);
                 $d->replies_count = max(0, $count - 1);
                 $d->created_at = $this->normalizeDateValue($d->created_at ?? null);
                 $d->updated_at = $this->normalizeDateValue($d->updated_at ?? null);
+                $d->last_comment_at = $this->normalizeDateValue($d->last_comment_at ?? null);
             });
         } else {
             $categoryIdInt = (int) $categoryId;
@@ -154,6 +160,19 @@ class ForumDiscussionController extends Controller
                 $row = $commentCounts->get($d->id);
                 $count = (int) ($row->comments_count ?? 0);
                 $d->setAttribute('replies_count', max(0, $count - 1));
+            });
+
+            $lastIds = $discussions->pluck('last_comment_by')->filter()->map(fn ($v) => is_numeric($v) ? (int) $v : null)->filter()->unique()->values()->all();
+            $lastMap = [];
+            if (! empty($lastIds)) {
+                $lastMap = DB::table('membres')
+                    ->whereIn('id', $lastIds)
+                    ->get(['id', 'username'])
+                    ->mapWithKeys(fn ($u) => [(int) $u->id => (string) $u->username])
+                    ->all();
+            }
+            $discussions->each(function (ForumDiscussion $d) use ($lastMap) {
+                $d->setAttribute('last_comment_user', (object) ['username' => (string) ($lastMap[(int) ($d->last_comment_by ?? 0)] ?? '')]);
             });
         }
 
@@ -218,6 +237,7 @@ class ForumDiscussionController extends Controller
             collect($comments)->each(function ($c) use ($formatter, $authorMap, $userId) {
                 $c->route_id = (string) $this->mongoDocId($c);
                 $c->id = $c->route_id;
+                $c->parent_id = $c->parent_id ? (string) $c->parent_id : null;
                 $a = $authorMap[(int) ($c->author_id ?? 0)] ?? null;
                 $c->author = (object) [
                     'username' => (string) ($a['username'] ?? '—'),
@@ -245,7 +265,7 @@ class ForumDiscussionController extends Controller
             $discussion->category?->setAttribute('route_id', (string) $discussion->category?->id);
 
             $comments = ForumComment::query()
-                ->with(['author'])
+                ->with(['author', 'parent.author'])
                 ->where('discussion_id', $idInt)
                 ->orderBy('created_at')
                 ->get();
@@ -291,6 +311,9 @@ class ForumDiscussionController extends Controller
 
     public function store(Request $request)
     {
+        $this->ensureForumAccess($request);
+        $this->ensureForumWrite($request);
+
         $userId = $request->session()->get('user_id');
         if (! $userId) {
             return redirect()->route('forum');
@@ -332,6 +355,7 @@ class ForumDiscussionController extends Controller
                     'last_comment_by' => null,
                 ]);
                 $insertedId = $r->getInsertedId();
+
                 return $r;
             });
 
@@ -364,6 +388,9 @@ class ForumDiscussionController extends Controller
 
     public function update(Request $request, string $id)
     {
+        $this->ensureForumAccess($request);
+        $this->ensureForumWrite($request);
+
         $userId = $request->session()->get('user_id');
         $userId = is_numeric($userId) ? (int) $userId : null;
         if (! $userId) {
@@ -422,6 +449,10 @@ class ForumDiscussionController extends Controller
 
     public function destroy(Request $request, string $id)
     {
+        $this->ensureForumAccess($request);
+        $userId = $request->session()->get('user_id');
+        $userId = is_numeric($userId) ? (int) $userId : null;
+
         $userId = $request->session()->get('user_id');
         $userId = is_numeric($userId) ? (int) $userId : null;
         if (! $userId) {
@@ -534,7 +565,7 @@ class ForumDiscussionController extends Controller
     private function toObjectId(string $id)
     {
         try {
-            return new \MongoDB\BSON\ObjectId($id);
+            return new ObjectId($id);
         } catch (\Throwable) {
             abort(404);
         }
@@ -553,5 +584,48 @@ class ForumDiscussionController extends Controller
         }
 
         return null;
+    }
+
+    private function ensureForumAccess(Request $request): void
+    {
+        $userId = $request->session()->get('user_id');
+        $userId = is_numeric($userId) ? (int) $userId : 0;
+        if ($userId <= 0) {
+            return;
+        }
+
+        if (in_array('Forum Accès Off', $this->currentRestrictions($request), true)) {
+            abort(403);
+        }
+    }
+
+    private function ensureForumWrite(Request $request): void
+    {
+        $userId = $request->session()->get('user_id');
+        $userId = is_numeric($userId) ? (int) $userId : 0;
+        if ($userId <= 0) {
+            return;
+        }
+
+        if (in_array('Forum Écriture Off', $this->currentRestrictions($request), true)) {
+            abort(403);
+        }
+    }
+
+    private function currentRestrictions(Request $request): array
+    {
+        $userId = $request->session()->get('user_id');
+        $userId = is_numeric($userId) ? (int) $userId : 0;
+        if ($userId <= 0) {
+            return [];
+        }
+
+        $raw = (string) (DB::table('membres')->where('id', $userId)->value('restriction') ?? '');
+        $list = array_values(array_filter(array_map(
+            static fn ($v) => trim((string) $v),
+            explode(',', $raw)
+        ), static fn ($v) => $v !== '' && $v !== 'Aucune'));
+
+        return array_values(array_unique($list));
     }
 }

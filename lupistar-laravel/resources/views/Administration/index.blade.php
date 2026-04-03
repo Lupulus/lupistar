@@ -3,6 +3,7 @@
 @section('styles')
     <link rel="stylesheet" href="{{ asset('css/style-admin.css') }}">
     <link rel="stylesheet" href="{{ asset('css/style-admin-modal.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/style-admin-film-modif.css') }}">
 @endsection
 
 @section('content')
@@ -45,12 +46,14 @@
                 <span class="item-text">Liste des films</span>
             </div>
 
-            <div class="summary-item" onclick="scrollToSection('send-notification-section')">
-                <div class="floating-icon">
-                    <span class="icon">📧</span>
+            @if(($adminPermissions['sendNotification'] ?? true))
+                <div class="summary-item" onclick="scrollToSection('send-notification-section')">
+                    <div class="floating-icon">
+                        <span class="icon">📧</span>
+                    </div>
+                    <span class="item-text">Envoyer notification</span>
                 </div>
-                <span class="item-text">Envoyer notification</span>
-            </div>
+            @endif
 
             @if(session('titre') === 'Super-Admin')
                 <div class="summary-item" onclick="scrollToSection('super-admin-communication-section')">
@@ -61,12 +64,14 @@
                 </div>
             @endif
 
-            <div class="summary-item" onclick="openStudioConversionsModal()">
-                <div class="floating-icon">
-                    <span class="icon">🔄</span>
+            @if(($adminPermissions['studioConversions'] ?? true))
+                <div class="summary-item" onclick="openStudioConversionsModal()">
+                    <div class="floating-icon">
+                        <span class="icon">🔄</span>
+                    </div>
+                    <span class="item-text">Conversions Studios</span>
                 </div>
-                <span class="item-text">Conversions Studios</span>
-            </div>
+            @endif
         </div>
     </div>
 
@@ -88,7 +93,7 @@
                         <div class="film-details">
                             <div class="detail-row">
                                 <label>Nom du film:</label>
-                                <input type="text" id="modal-nom-film" class="modal-input">
+                                <input type="text" id="modal-nom-film" class="modal-input" maxlength="75">
                             </div>
                             <div class="detail-row">
                                 <label>Catégorie:</label>
@@ -171,7 +176,11 @@
                         </div>
 
                         <div class="modal-buttons">
-                            <button type="button" class="btn-approve" onclick="approveFilm()">Approuver</button>
+                            @if(($adminPermissions['approveFilm'] ?? true))
+                                <button type="button" class="btn-approve" onclick="approveFilm()">Approuver</button>
+                            @else
+                                <button type="button" class="btn-approve" disabled title="Action bloquée par restriction">Approuver</button>
+                            @endif
                             <button type="button" class="btn-reject" onclick="rejectFilm()">Rejeter</button>
                             <button type="button" class="btn-cancel" onclick="closePendingFilmModal()">Annuler</button>
                         </div>
@@ -184,125 +193,145 @@
     <div id="films-list-section" class="admin-section">
         <h2>Liste des films ajoutés</h2>
         <div class="search-container">
-            <input type="text" id="searchBar" placeholder="Rechercher un film, auteur, studio..." onkeyup="filterFilms()">
+            <input type="text" id="searchBar" placeholder="Rechercher un film, studio, pays..." oninput="renderFilmsTable()">
         </div>
+        <div id="liste-film" class="films-table-wrapper">
+            <table id="films-table" class="membres-table admin-films-table">
+                <thead>
+                <tr>
+                    <th>Image</th>
+                    <th data-sort="nom_film">Titre du film <span class="sort-icon">⇅</span></th>
+                    <th data-sort="categorie">Catégorie <span class="sort-icon">⇅</span></th>
+                    <th data-sort="studio_nom">Studio <span class="sort-icon">⇅</span></th>
+                    <th data-sort="pays_nom">Pays <span class="sort-icon">⇅</span></th>
+                    <th data-sort="date_sortie">Année <span class="sort-icon">⇅</span></th>
+                    <th>Action</th>
+                </tr>
+                </thead>
+                <tbody id="films-table-body"></tbody>
+            </table>
+        </div>
+    </div>
 
-        <div id="liste-film" class="films-container">
-            @foreach($films as $film)
-                @php
-                    $sg = $sousGenresByFilm[(int) $film->id] ?? [];
-                    $sgNames = array_map(fn ($x) => $x['nom'], $sg);
-                    $isSerie = in_array((string) $film->categorie, ['Série', "Série d'Animation"], true);
-                    $date = (int) $film->date_sortie;
-                    $bg = getDateColor($date);
-                @endphp
-                <div class="film-item" data-id="{{ $film->id }}">
-                    <div class="film-image">
-                        <img src="{{ $film->image_path ? asset($film->image_path) : '' }}" alt="{{ $film->nom_film }}">
-                    </div>
-
-                    <div class="date-sortie" style="background-color: {{ $bg }}; display: flex; align-items: center; justify-content: center; text-align: center; grid-column: 13; grid-row: 1/6; width: auto;">
-                        Date de diffusion: {{ $date }}
-                    </div>
-
-                    <h3 id="film-nom">{{ $film->nom_film }}</h3>
-                    <p id="film-categorie"><u>Catégorie:</u> {{ $film->categorie }}</p>
-                    <p id="film-studio"><u>Studio:</u> {{ $film->studio_nom }}</p>
-                    <p id="film-auteur"><u>Auteur:</u> {{ $film->auteur_nom }}</p>
-                    <p id="film-pays"><u>Pays:</u> {{ $film->pays_nom }}</p>
-                    <p id="film-sous-genres"><u>Sous-genres:</u> {{ !empty($sgNames) ? implode(', ', $sgNames) : 'Aucun sous-genre' }}</p>
-                    <p id="film-description"><u>Description:</u> {{ $film->description }}</p>
-                    @if($isSerie)
-                        <p id="film-saison"><u>Saison :</u> {{ $film->saison ?? '-' }}</p>
-                        <p id="film-episodes"><u>Nombre d’épisodes :</u> {{ $film->nbrEpisode ?? '-' }}</p>
-                    @endif
-
-                    <div class="action-buttons">
-                        <button class="modify-btn" type="button" onclick="showModifyForm({{ $film->id }})">Modifier</button>
-                        <button class="delete-btn" type="button" onclick="deleteFilm({{ $film->id }})">Supprimer</button>
-                    </div>
-                </div>
-
-                <div class="modify-form" id="modify-form-{{ $film->id }}" style="display: none;">
-                    <form class="modify-form" id="modify-form-{{ $film->id }}-form" style="display: none;" onsubmit="modifyFilm({{ $film->id }}); return false;">
-                        <div class="form-container">
-                            <label>Nom du film :</label>
-                            <input type="text" name="nom_film" value="{{ $film->nom_film }}" required><br>
-
-                            <label>Catégorie :</label>
-                            <select name="categorie" required>
-                                @foreach($categories as $cat)
-                                    <option value="{{ $cat }}" @selected($film->categorie === $cat)>{{ $cat }}</option>
-                                @endforeach
-                            </select><br>
-
-                            <label for="description">Description :</label><br>
-                            <textarea id="description_{{ $film->id }}" name="description" rows="4" cols="50" placeholder="Pas de description">{{ $film->description }}</textarea><br>
-
-                            @if(! $isSerie)
-                                <label for="ordre_suite">Ordre du film (Suite?) :</label>
-                                <input type="number" id="ordre_suite_{{ $film->id }}" name="ordre_suite" min="1" max="25" step="1" value="{{ $film->ordre_suite }}"><br>
-                            @else
-                                <label for="saison">Numéro de saison :</label>
-                                <input type="number" id="saison_{{ $film->id }}" name="saison" min="1" max="100" value="{{ $film->saison ?? 1 }}" required><br>
-
-                                <label for="nbrEpisode">Nombre d’épisodes :</label>
-                                <input type="number" id="nbrEpisode_{{ $film->id }}" name="nbrEpisode" min="1" max="9999" value="{{ $film->nbrEpisode ?? '' }}" required><br>
-                            @endif
-
-                            <label for="date_sortie">Date de sortie :</label>
-                            <input type="number" id="date_sortie_{{ $film->id }}" name="date_sortie" min="1900" max="2099" step="1" value="{{ $film->date_sortie }}" required><br>
-
-                            <label>Studio :</label>
-                            <select name="studio_id">
-                                @foreach($studios as $sid => $snom)
-                                    <option value="{{ $sid }}" @selected((int) $film->studio_id === (int) $sid)>{{ $snom }}</option>
-                                @endforeach
-                            </select><br>
-
-                            <label>Auteur :</label>
-                            <select name="auteur_id">
-                                @foreach($auteurs as $aid => $anom)
-                                    <option value="{{ $aid }}" @selected((int) $film->auteur_id === (int) $aid)>{{ $anom }}</option>
-                                @endforeach
-                            </select><br>
-
-                            <label>Pays :</label>
-                            <select name="pays_id">
-                                @foreach($pays as $pid => $pnom)
-                                    <option value="{{ $pid }}" @selected((int) $film->pays_id === (int) $pid)>{{ $pnom }}</option>
-                                @endforeach
-                            </select><br>
-
-                            <label>Sous-genres :</label>
-                            @foreach($sousGenres as $gid => $gnom)
-                                @php $checked = in_array((int) $gid, array_map(fn ($x) => (int) $x['id'], $sg), true); @endphp
-                                <input type="checkbox" name="sous_genres[]" value="{{ $gid }}" @checked($checked)> {{ $gnom }}<br>
-                            @endforeach
-
-                            <button type="submit">Enregistrer</button>
-                            <button type="button" onclick="hideModifyForm({{ $film->id }})">Annuler</button>
+    <div id="filmEditModal" class="admin-modal admin-film-modif-modal" style="display:none;">
+        <div class="admin-modal-content admin-film-modif-content">
+            <div class="modal-header">
+                <h3 id="edit-title"></h3>
+                <span class="close" onclick="closeFilmEdit()">&times;</span>
+            </div>
+            <div class="admin-film-modif-body">
+                <form id="film-edit-form" class="admin-film-modif-form" onsubmit="saveFilmEdit();return false;">
+                    <input type="hidden" id="edit-id">
+                    <div class="admin-film-modif-grid">
+                        <div class="admin-film-modif-group">
+                            <label>Titre du film <span class="admin-film-modif-required">*</span></label>
+                            <input type="text" id="edit-nom_film" maxlength="75" placeholder="Nom du film (max 75 caractères)" required>
+                            <div class="admin-film-modif-field-hint">Requis • max 75 caractères</div>
                         </div>
-                    </form>
-                </div>
-            @endforeach
+                        <div class="admin-film-modif-group">
+                            <label>Catégorie <span class="admin-film-modif-required">*</span></label>
+                            <select id="edit-categorie" required>
+                                @foreach($categories as $cat)
+                                    <option value="{{ $cat }}">{{ $cat }}</option>
+                                @endforeach
+                            </select>
+                            <div class="admin-film-modif-field-hint">Requis</div>
+                        </div>
+                        <div class="admin-film-modif-group">
+                            <label>Année <span class="admin-film-modif-required">*</span></label>
+                            <input type="number" id="edit-date_sortie" min="1900" max="2099" required>
+                            <div class="admin-film-modif-field-hint">Requis • 1900–2099</div>
+                        </div>
+                        <div class="admin-film-modif-group" id="edit-ordre-suite-group">
+                            <label>Ordre (suite)</label>
+                            <input type="number" id="edit-ordre_suite" min="1" max="25">
+                            <div class="admin-film-modif-field-hint">Optionnel • 1–25</div>
+                        </div>
+                        <div class="admin-film-modif-group" id="edit-saison-group" style="display:none;">
+                            <label>Saison</label>
+                            <input type="number" id="edit-saison" min="1" max="100">
+                            <div class="admin-film-modif-field-hint">Requis pour une série • 1–100</div>
+                        </div>
+                        <div class="admin-film-modif-group" id="edit-episodes-group" style="display:none;">
+                            <label>Nombre d’épisodes</label>
+                            <input type="number" id="edit-nbrEpisode" min="1" max="9999">
+                            <div class="admin-film-modif-field-hint">Requis pour une série • 1–9999</div>
+                        </div>
+                        <div class="admin-film-modif-group">
+                            <label>Studio <span class="admin-film-modif-required">*</span></label>
+                            <select id="edit-studio_id" required>
+                                @foreach($studios as $sid => $snom)
+                                    <option value="{{ $sid }}">{{ $snom }}</option>
+                                @endforeach
+                            </select>
+                            <div class="admin-film-modif-field-hint">Requis</div>
+                        </div>
+                        <div class="admin-film-modif-group">
+                            <label>Auteur <span class="admin-film-modif-required">*</span></label>
+                            <select id="edit-auteur_id" required>
+                                @foreach($auteurs as $aid => $anom)
+                                    <option value="{{ $aid }}">{{ $anom }}</option>
+                                @endforeach
+                            </select>
+                            <div class="admin-film-modif-field-hint">Requis</div>
+                        </div>
+                        <div class="admin-film-modif-group">
+                            <label>Pays <span class="admin-film-modif-required">*</span></label>
+                            <select id="edit-pays_id" required>
+                                @foreach($pays as $pid => $pnom)
+                                    <option value="{{ $pid }}">{{ $pnom }}</option>
+                                @endforeach
+                            </select>
+                            <div class="admin-film-modif-field-hint">Requis</div>
+                        </div>
+                        <div class="admin-film-modif-group admin-film-modif-group-full">
+                            <label>Description</label>
+                            <textarea id="edit-description" rows="4" maxlength="400" placeholder="Pas de description" oninput="updateEditDescriptionCharCount()"></textarea>
+                            <span id="editDescriptionCharCount" class="admin-film-modif-charcount">0 / 400</span>
+                            <div class="admin-film-modif-field-hint">Optionnel • max 400 caractères</div>
+                        </div>
+                        <div class="admin-film-modif-group admin-film-modif-group-full">
+                            <label>Sous-genres <span class="admin-film-modif-required">*</span></label>
+                            <div id="edit-sous-genres" class="admin-film-modif-checkbox-grid">
+                                @foreach($sousGenres as $gid => $gnom)
+                                    <label class="admin-film-modif-checkbox"><input type="checkbox" value="{{ $gid }}"> {{ $gnom }}</label>
+                                @endforeach
+                            </div>
+                            <div id="edit-sous-genre-warning" class="admin-film-modif-warning" style="display:none;">⚠️ Sélectionnez au moins un sous-genre.</div>
+                            <div class="admin-film-modif-field-hint">Requis</div>
+                        </div>
+                        <div class="admin-film-modif-group admin-film-modif-group-full">
+                            <label>Image</label>
+                            <input type="file" id="edit-image" accept=".jpg,.jpeg,.png,.gif,.webp">
+                            <div class="admin-film-modif-or">ou</div>
+                            <input type="url" id="edit-image_url" placeholder="Lien de l'image (http...)" inputmode="url" autocomplete="off">
+                            <div class="admin-film-modif-image-hint">Optionnel • fichier (max 5 Mo) ou lien http(s). Si fourni, l’ancienne image sera remplacée.</div>
+                        </div>
+                    </div>
+                    <div class="modal-buttons">
+                        <button type="submit" class="admin-film-modif-save">Sauvegarder</button>
+                        <button type="button" class="btn-cancel" onclick="closeFilmEdit()">Annuler</button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
 
     <div id="send-notification-section" class="admin-section">
         <h2>Envoyer une notification</h2>
-        <form id="notificationForm">
-            <div class="form-section">
-                <div class="form-group">
-                    <label for="recipient-type">Type de destinataire :</label>
-                    <select id="recipient-type" name="recipient_type" required onchange="handleRecipientTypeChange()">
-                        <option value="">Sélectionnez le type</option>
-                        <option value="all">Tous les utilisateurs</option>
-                        <option value="title">Par titre (Admin, Membre, etc.)</option>
-                        <option value="specific">Utilisateur spécifique</option>
-                    </select>
+        @if(($adminPermissions['sendNotification'] ?? true))
+            <form id="notificationForm">
+                <div class="form-section">
+                    <div class="form-group">
+                        <label for="recipient-type">Type de destinataire :</label>
+                        <select id="recipient-type" name="recipient_type" required onchange="handleRecipientTypeChange()">
+                            <option value="">Sélectionnez le type</option>
+                            <option value="all">Tous les utilisateurs</option>
+                            <option value="title">Par titre (Admin, Membre, etc.)</option>
+                            <option value="specific">Utilisateur spécifique</option>
+                        </select>
+                    </div>
                 </div>
-            </div>
 
             <div id="title-selection" class="form-section" style="display:none;">
                 <div class="form-group">
@@ -346,13 +375,16 @@
                 </div>
             </div>
 
-            <div class="form-section">
-                <button type="button" class="btn-add" onclick="sendNotification()">Envoyer la notification</button>
-                <button type="button" class="btn-cancel" onclick="resetNotificationForm()">Réinitialiser</button>
-            </div>
+                <div class="form-section">
+                    <button type="button" class="btn-add" onclick="sendNotification()">Envoyer la notification</button>
+                    <button type="button" class="btn-cancel" onclick="resetNotificationForm()">Réinitialiser</button>
+                </div>
 
-            <div id="notification-result" class="result-message" style="display:none;"></div>
-        </form>
+                <div id="notification-result" class="result-message" style="display:none;"></div>
+            </form>
+        @else
+            <div class="no-pending-films">Action bloquée par restriction.</div>
+        @endif
     </div>
 
     @if(session('titre') === 'Super-Admin')
@@ -520,6 +552,12 @@
 @section('scripts')
     <script>
         const CSRF = @json($csrf);
+        const adminPermissions = @json($adminPermissions ?? []);
+
+        function canAdmin(actionKey) {
+            if (!adminPermissions || typeof adminPermissions !== 'object') return true;
+            return adminPermissions[actionKey] !== false;
+        }
         const routes = {
             adminIndex: @json(route('administration')),
             pendingFilms: @json(route('administration.pending-films')),
@@ -531,6 +569,8 @@
             autocompleteAuteurs: @json(route('administration.autocomplete.auteurs')),
             deleteFilm: @json(url('/administration/films')) + '/',
             modifyFilm: @json(url('/administration/films')) + '/',
+            filmsList: @json(route('administration.films.list')),
+            filmDetails: @json(url('/administration/films')) + '/',
             sendNotification: @json(route('administration.send-notification')),
             sendEmail: @json(route('administration.send-email')),
             publishPrivacyPolicy: @json(route('administration.privacy-policy.publish')),
@@ -552,8 +592,11 @@
             updateNotificationCharCount();
             handleCategoryChange();
             updateNomFilmLabel();
-            loadStudioConversions();
+            if (canAdmin('studioConversions')) {
+                loadStudioConversions();
+            }
             handleEmailSubjectTypeChange();
+            initFilmsTable();
         });
 
         function toggleSummary() {
@@ -916,25 +959,11 @@
         }
 
         async function refreshFilmsList() {
-            const container = document.getElementById('liste-film');
-            if (!container) return;
             const search = document.getElementById('searchBar');
             const currentQuery = (search?.value || '').trim();
-
-            const r = await fetch(routes.adminIndex, {
-                headers: { 'Accept': 'text/html', 'X-Requested-With': 'XMLHttpRequest' }
-            });
-            if (!r.ok) return;
-            const html = await r.text();
-            const doc = new DOMParser().parseFromString(html, 'text/html');
-            const next = doc.getElementById('liste-film');
-            if (!next) return;
-
-            container.innerHTML = next.innerHTML;
-            if (search) {
-                search.value = currentQuery;
-                if (currentQuery) filterFilms();
-            }
+            await loadFilmsTable();
+            if (search) search.value = currentQuery;
+            renderFilmsTable();
         }
 
         const auteurEl = document.getElementById('auteur');
@@ -944,49 +973,274 @@
             });
         }
 
-        function filterFilms() {
-            const input = document.getElementById("searchBar");
-            const filter = input.value.toLowerCase();
-            const filmItems = document.querySelectorAll(".film-item");
-            filmItems.forEach(film => {
-                const text = film.textContent.toLowerCase();
-                film.style.display = text.includes(filter) ? "" : "none";
+        let filmsData = [];
+        let currentSortKey = 'id';
+        let currentSortDir = 'desc';
+
+        async function initFilmsTable() {
+            const headers = document.querySelectorAll('#films-table thead th[data-sort]');
+            headers.forEach(h => {
+                h.addEventListener('click', () => {
+                    const key = h.getAttribute('data-sort');
+                    if (currentSortKey === key) {
+                        currentSortDir = currentSortDir === 'asc' ? 'desc' : 'asc';
+                    } else {
+                        currentSortKey = key;
+                        currentSortDir = 'asc';
+                    }
+                    renderFilmsTable();
+                });
+            });
+            await loadFilmsTable();
+        }
+
+        async function loadFilmsTable() {
+            try {
+                const r = await fetch(routes.filmsList, { headers: { 'Accept': 'application/json' } });
+                const data = await r.json();
+                if (!data?.success) return;
+                filmsData = Array.isArray(data.films) ? data.films : [];
+                renderFilmsTable();
+            } catch (e) {
+            }
+        }
+
+        function renderFilmsTable() {
+            const tbody = document.getElementById('films-table-body');
+            if (!tbody) return;
+            const canModifyFilm = canAdmin('modifyFilm');
+            const canDeleteFilm = canAdmin('deleteFilm');
+            const q = (document.getElementById('searchBar')?.value || '').toLowerCase();
+            let rows = filmsData.slice();
+            if (q) {
+                rows = rows.filter(f =>
+                    String(f.nom_film || '').toLowerCase().includes(q) ||
+                    String(f.studio_nom || '').toLowerCase().includes(q) ||
+                    String(f.pays_nom || '').toLowerCase().includes(q) ||
+                    String(f.categorie || '').toLowerCase().includes(q) ||
+                    String(f.date_sortie || '').includes(q)
+                );
+            }
+            rows.sort((a, b) => {
+                const k = currentSortKey;
+                let va = a[k], vb = b[k];
+                if (typeof va === 'string') va = va.toLowerCase();
+                if (typeof vb === 'string') vb = vb.toLowerCase();
+                if (va < vb) return currentSortDir === 'asc' ? -1 : 1;
+                if (va > vb) return currentSortDir === 'asc' ? 1 : -1;
+                return 0;
+            });
+            const maxRows = rows;
+            let html = '';
+            maxRows.forEach(f => {
+                const img = f.image ? `<img src="${f.image}" alt="${escapeHtml(f.nom_film)}" class="admin-film-thumb" onerror="this.src='{{ asset('img/default-film.png') }}'">` : '';
+                const editBtn = canModifyFilm ? `
+                            <button type="button" class="film-icon-btn edit" title="Modifier" onclick="event.stopPropagation();openFilmEdit(${f.id})" aria-label="Modifier">
+                                <svg class="film-action-icon" viewBox="0 0 24 24" aria-hidden="true">
+                                    <path d="M12 20h9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                                    <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" />
+                                </svg>
+                            </button>` : '';
+                const deleteBtn = canDeleteFilm ? `
+                            <button type="button" class="film-icon-btn delete" title="Supprimer" onclick="event.stopPropagation();deleteFilm(${f.id})" aria-label="Supprimer">
+                                <svg class="film-action-icon" viewBox="0 0 24 24" aria-hidden="true">
+                                    <path d="M3 6h18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                                    <path d="M8 6V4h8v2" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" />
+                                    <path d="M6 6l1 16h10l1-16" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" />
+                                    <path d="M10 11v6M14 11v6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                                </svg>
+                            </button>` : '';
+                html += `
+                    <tr data-id="${f.id}" class="film-row">
+                        <td class="image-cell">${img}</td>
+                        <td>${escapeHtml(f.nom_film)}</td>
+                        <td>${escapeHtml(f.categorie)}</td>
+                        <td>${escapeHtml(f.studio_nom)}</td>
+                        <td>${escapeHtml(f.pays_nom)}</td>
+                        <td>${f.date_sortie}</td>
+                        <td class="film-actions-cell">
+                            ${editBtn}
+                            ${deleteBtn}
+                        </td>
+                    </tr>
+                `;
+            });
+            tbody.innerHTML = html;
+            const rowsEls = tbody.querySelectorAll('tr.film-row');
+            rowsEls.forEach(tr => {
+                tr.addEventListener('click', () => {
+                    const id = tr.getAttribute('data-id');
+                    if (typeof window.openFilmModalForFilmId === 'function') {
+                        window.openFilmModalForFilmId(id);
+                    }
+                });
+            });
+            updateSortIcons();
+        }
+
+        function updateSortIcons() {
+            document.querySelectorAll('#films-table thead th[data-sort]').forEach(th => {
+                const icon = th.querySelector('.sort-icon');
+                if (!icon) return;
+                const key = th.getAttribute('data-sort');
+                if (key !== currentSortKey) {
+                    icon.textContent = '⇅';
+                    return;
+                }
+                icon.textContent = currentSortDir === 'asc' ? '▲' : '▼';
             });
         }
 
-        function showModifyForm(id) {
-            document.getElementById('modify-form-' + id).style.display = 'block';
-            document.getElementById('modify-form-' + id + '-form').style.display = 'block';
-        }
-
-        function hideModifyForm(id) {
-            document.getElementById('modify-form-' + id).style.display = 'none';
-            document.getElementById('modify-form-' + id + '-form').style.display = 'none';
-        }
-
-        function modifyFilm(id) {
-            const form = document.getElementById("modify-form-" + id + "-form");
-            const formData = new FormData(form);
-            fetch(routes.modifyFilm + id + '/modify', {
-                method: 'POST',
-                body: formData,
-                headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': CSRF }
-            })
+        function openFilmEdit(id) {
+            if (!canAdmin('modifyFilm')) {
+                if (typeof customAlert === 'function') {
+                    customAlert('Action bloquée par restriction.', 'Erreur');
+                } else {
+                    alert('Action bloquée par restriction.');
+                }
+                return;
+            }
+            fetch(routes.filmDetails + id, { headers: { 'Accept': 'application/json' } })
                 .then(r => r.json())
                 .then(data => {
-                    if (data.success) {
-                        customSuccess("Modification réussie !", "Modification du film");
-                        refreshFilmsList();
-                    } else {
-                        customAlert("Erreur : " + (data.error || "Aucune réponse"), "Erreur de modification");
-                    }
-                })
-                .catch(() => {
-                    customAlert("Erreur lors de la modification du film.", "Erreur");
+                    if (!data?.success) return;
+                    const f = data.film;
+                    document.getElementById('edit-title').textContent = 'Modifier: ' + f.nom_film;
+                    document.getElementById('edit-id').value = f.id;
+                    document.getElementById('edit-nom_film').value = f.nom_film;
+                    document.getElementById('edit-categorie').value = f.categorie;
+                    document.getElementById('edit-date_sortie').value = f.date_sortie;
+                    document.getElementById('edit-ordre_suite').value = f.ordre_suite || '';
+                    document.getElementById('edit-saison').value = f.saison || '';
+                    document.getElementById('edit-nbrEpisode').value = f.nbrEpisode || '';
+                    document.getElementById('edit-studio_id').value = f.studio_id;
+                    document.getElementById('edit-auteur_id').value = f.auteur_id;
+                    document.getElementById('edit-pays_id').value = f.pays_id;
+                    document.getElementById('edit-description').value = f.description || '';
+                    document.getElementById('edit-image').value = '';
+                    const imageUrlEl = document.getElementById('edit-image_url');
+                    if (imageUrlEl) imageUrlEl.value = '';
+                    updateEditDescriptionCharCount();
+                    const sgWarn = document.getElementById('edit-sous-genre-warning');
+                    if (sgWarn) sgWarn.style.display = 'none';
+                    const sgContainer = document.getElementById('edit-sous-genres');
+                    const selected = new Set((f.sous_genres || []).map(x => x.id));
+                    sgContainer.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+                        cb.checked = selected.has(parseInt(cb.value, 10));
+                    });
+                    updateEditModeForCategorie();
+                    document.getElementById('filmEditModal').style.display = 'block';
                 });
         }
 
+        function closeFilmEdit() {
+            document.getElementById('filmEditModal').style.display = 'none';
+        }
+
+        function updateEditModeForCategorie() {
+            const cat = document.getElementById('edit-categorie').value;
+            const isSerie = cat.includes('Série');
+            document.getElementById('edit-ordre-suite-group').style.display = isSerie ? 'none' : 'block';
+            document.getElementById('edit-saison-group').style.display = isSerie ? 'block' : 'none';
+            document.getElementById('edit-episodes-group').style.display = isSerie ? 'block' : 'none';
+            const saisonEl = document.getElementById('edit-saison');
+            const epEl = document.getElementById('edit-nbrEpisode');
+            if (saisonEl) saisonEl.required = isSerie;
+            if (epEl) epEl.required = isSerie;
+        }
+        document.getElementById('edit-categorie')?.addEventListener('change', updateEditModeForCategorie);
+
+        function updateEditDescriptionCharCount() {
+            const t = document.getElementById('edit-description');
+            const c = document.getElementById('editDescriptionCharCount');
+            if (!t || !c) return;
+            const current = (t.value || '').length;
+            c.textContent = `${current} / 400`;
+        }
+
+        function buildEditFormData() {
+            const id = document.getElementById('edit-id').value;
+            const formData = new FormData();
+            formData.append('nom_film', document.getElementById('edit-nom_film').value.trim());
+            formData.append('categorie', document.getElementById('edit-categorie').value);
+            formData.append('date_sortie', document.getElementById('edit-date_sortie').value);
+            formData.append('ordre_suite', document.getElementById('edit-ordre_suite').value || '');
+            formData.append('saison', document.getElementById('edit-saison').value || '');
+            formData.append('nbrEpisode', document.getElementById('edit-nbrEpisode').value || '');
+            formData.append('studio_id', document.getElementById('edit-studio_id').value);
+            formData.append('auteur_id', document.getElementById('edit-auteur_id').value);
+            formData.append('pays_id', document.getElementById('edit-pays_id').value);
+            formData.append('description', document.getElementById('edit-description').value);
+            document.querySelectorAll('#edit-sous-genres input[type="checkbox"]:checked').forEach(cb => {
+                formData.append('sous_genres[]', cb.value);
+            });
+            const file = document.getElementById('edit-image').files[0];
+            if (file) {
+                formData.append('image', file);
+            } else {
+                const imageUrl = (document.getElementById('edit-image_url')?.value || '').trim();
+                if (imageUrl) {
+                    formData.append('image_url', imageUrl);
+                }
+            }
+            return { id, formData };
+        }
+
+        function firstErrorMessage(data) {
+            if (!data) return '';
+            if (typeof data.error === 'string' && data.error.trim() !== '') return data.error;
+            if (typeof data.message === 'string' && data.message.trim() !== '') return data.message;
+            if (data.errors && typeof data.errors === 'object') {
+                for (const key of Object.keys(data.errors)) {
+                    const v = data.errors[key];
+                    if (Array.isArray(v) && v.length > 0) return String(v[0]);
+                }
+            }
+            return '';
+        }
+
+        async function saveFilmEdit() {
+            if (!canAdmin('modifyFilm')) {
+                if (typeof customAlert === 'function') {
+                    customAlert('Action bloquée par restriction.', 'Erreur');
+                } else {
+                    alert('Action bloquée par restriction.');
+                }
+                return;
+            }
+            const checkedCount = document.querySelectorAll('#edit-sous-genres input[type="checkbox"]:checked').length;
+            const sgWarn = document.getElementById('edit-sous-genre-warning');
+            if (sgWarn) sgWarn.style.display = checkedCount > 0 ? 'none' : 'block';
+            if (checkedCount === 0) {
+                customAlert('Sélectionnez au moins un sous-genre.', 'Champ requis');
+                return;
+            }
+            const token = CSRF;
+            const { id, formData } = buildEditFormData();
+            try {
+                const r = await fetch(routes.modifyFilm + id + '/modify', { method: 'POST', body: formData, headers: { 'X-CSRF-TOKEN': token, 'Accept': 'application/json' } });
+                const data = await r.json().catch(() => ({}));
+                if (!r.ok || !data?.success) {
+                    customAlert('Erreur : ' + (firstErrorMessage(data) || 'Inconnue'), 'Erreur');
+                    return;
+                }
+                customSuccess('Modification enregistrée', 'Succès');
+                closeFilmEdit();
+                await loadFilmsTable();
+            } catch (e) {
+                customAlert('Erreur lors de la sauvegarde', 'Erreur');
+            }
+        }
+
         async function deleteFilm(id) {
+            if (!canAdmin('deleteFilm')) {
+                if (typeof customAlert === 'function') {
+                    customAlert('Action bloquée par restriction.', 'Erreur');
+                } else {
+                    alert('Action bloquée par restriction.');
+                }
+                return;
+            }
             const confirmed = await customDanger('Voulez-vous vraiment supprimer ce film ?', 'Confirmation de suppression');
             if (!confirmed) return;
             fetch(routes.deleteFilm + id + '/delete', {
@@ -995,12 +1249,14 @@
             })
                 .then(response => {
                     if (response.status === 204) {
-                        const filmElement = document.querySelector(`.film-item[data-id="${id}"]`);
-                        if (filmElement) filmElement.remove();
+                        const row = document.querySelector(`#films-table-body tr[data-id="${id}"]`);
+                        if (row) row.remove();
+                        filmsData = filmsData.filter(f => Number(f.id) !== Number(id));
+                        renderFilmsTable();
                         customSuccess('Film supprimé avec succès !', 'Suppression réussie');
                     } else {
                         return response.json().then(data => {
-                            customAlert('Erreur : ' + (data.error || 'Erreur lors de la suppression.'), 'Erreur de suppression');
+                            customAlert('Erreur : ' + (firstErrorMessage(data) || 'Erreur lors de la suppression.'), 'Erreur de suppression');
                         });
                     }
                 })
@@ -1095,6 +1351,14 @@
 
         async function approveFilm() {
             if (!currentPendingFilm) return;
+            if (!canAdmin('approveFilm')) {
+                if (typeof customAlert === 'function') {
+                    customAlert('Action bloquée par restriction.', 'Erreur');
+                } else {
+                    alert('Action bloquée par restriction.');
+                }
+                return;
+            }
             const confirmed = await customConfirm('Êtes-vous sûr de vouloir approuver ce film ?', 'Confirmation d\'approbation');
             if (!confirmed) return;
 
@@ -1182,6 +1446,10 @@
             if (event.target === scModal) {
                 closeStudioConversionsModal();
             }
+            const filmEditModal = document.getElementById('filmEditModal');
+            if (event.target === filmEditModal) {
+                closeFilmEdit();
+            }
         }
 
         function handleRecipientTypeChange() {
@@ -1238,6 +1506,10 @@
         }
 
         function sendNotification() {
+            if (!canAdmin('sendNotification')) {
+                showNotificationResult('Action bloquée par restriction.', 'error');
+                return;
+            }
             const recipientType = document.getElementById('recipient-type').value;
             const notificationTitle = document.getElementById('notification-title').value.trim();
             const notificationMessage = document.getElementById('notification-message').value.trim();
@@ -1579,6 +1851,14 @@
         }
 
         function openStudioConversionsModal() {
+            if (!canAdmin('studioConversions')) {
+                if (typeof customAlert === 'function') {
+                    customAlert('Action bloquée par restriction.', 'Erreur');
+                } else {
+                    alert('Action bloquée par restriction.');
+                }
+                return;
+            }
             document.getElementById('studioConversionsModal').style.display = 'block';
             loadStudioConversions();
         }

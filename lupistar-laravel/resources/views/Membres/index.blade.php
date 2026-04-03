@@ -25,7 +25,7 @@
                     <th>Nom d'utilisateur</th>
                     <th>Email</th>
                     <th>Titre actuel</th>
-                    <th>Restriction</th>
+                    <th>Restrictions</th>
                     <th>Avertissements <span class="sort-icon" onclick="sortTable(4)" title="Trier par avertissements">⇅</span></th>
                     <th>Récompenses <span class="sort-icon" onclick="sortTable(5)" title="Trier par récompenses">⇅</span></th>
                     <th>Actions</th>
@@ -35,19 +35,26 @@
                 @foreach($membres as $m)
                     @php
                         $canModify = $isSuperAdmin || ($isAdmin && !in_array($m->titre, ['Super-Admin', 'Admin'], true));
+                        $rawRestrictions = (string) ($m->restriction ?? '');
+                        $currentRestrictions = array_values(array_filter(array_map(static fn ($v) => trim((string) $v), explode(',', $rawRestrictions)), static fn ($v) => $v !== '' && $v !== 'Aucune'));
+                        $deletionScheduledFor = ! empty($m->deletion_scheduled_for ?? null) ? \Illuminate\Support\Carbon::parse($m->deletion_scheduled_for) : null;
+                        $isDeletionPending = $deletionScheduledFor && $deletionScheduledFor->isFuture();
+                        $hoursLeft = $isDeletionPending ? max(0, (int) ceil(now()->diffInMinutes($deletionScheduledFor) / 60)) : 0;
                         $titreSuivant = '';
                         $idx = array_search($m->titre, $titresOrdre, true);
                         if ($idx !== false && $idx < count($titresOrdre) - 1) {
                             $titreSuivant = $titresOrdre[$idx + 1];
                         }
                     @endphp
-                    <tr data-id="{{ $m->id }}">
+                    <tr data-id="{{ $m->id }}" @if($isDeletionPending) class="pending-deletion-row" @endif>
                         <td class="membre-username">
-                            <img src="{{ asset($m->photo_profil ?: 'img/img-profile/profil.png') }}" alt="Photo de profil" class="membre-photo-profil">
-                            <span class="membre-nom" id="username-{{ $m->id }}">{{ $m->username }}</span>
-                            @if((int) ($m->demande_promotion ?? 0) === 1)
-                                <span class="promotion-badge" title="Demande de promotion en cours">🔔</span>
-                            @endif
+                            <div class="membre-username-inner">
+                                <img src="{{ asset($m->photo_profil ?: 'img/img-profile/profil.png') }}" alt="Photo de profil" class="membre-photo-profil">
+                                <span class="membre-nom" id="username-{{ $m->id }}">{{ $m->username }}</span>
+                                @if((int) ($m->demande_promotion ?? 0) === 1)
+                                    <span class="promotion-badge" title="Demande de promotion en cours">🔔</span>
+                                @endif
+                            </div>
                         </td>
                         <td class="membre-email" id="email-{{ $m->id }}">{{ $m->email ?? 'Non renseigné' }}</td>
                         <td class="titre-cell">
@@ -76,7 +83,7 @@
                             @endif
                         </td>
                         <td>
-                            <span class="membre-restriction restriction-{{ strtolower(str_replace(' ', '-', $m->restriction ?? 'aucune')) }}" id="restriction-{{ $m->id }}">{{ $m->restriction ?? 'Aucune' }}</span>
+                            <span class="membre-restriction" id="restriction-{{ $m->id }}">{{ $m->restriction ?? 'Aucune' }}</span>
                         </td>
                         <td class="membre-avertissements">
                             <div class="warning-reward-inline">
@@ -108,10 +115,16 @@
                                 @endif
                             </div>
                         </td>
-                        <td class="actions-cell">
-                            <div class="dropdown action-dropdown">
-                                @if($canModify && (! $isSuperAdmin || ($isSuperAdmin && $m->titre !== 'Super-Admin')))
-                                    <button class="dropbtn" onclick="toggleDropdown('dropdown-titre-{{ $m->id }}')">Modifier Titre</button>
+                        <td class="actions-cell @if($isDeletionPending) pending-deletion @endif">
+                            <div class="actions-cell-inner">
+                                <div class="dropdown action-dropdown">
+                                @if(! $isDeletionPending && $canModify && (! $isSuperAdmin || ($isSuperAdmin && $m->titre !== 'Super-Admin')))
+                                    <button type="button" class="dropbtn action-icon-btn icon-title" onclick="toggleDropdown('dropdown-titre-{{ $m->id }}')" title="Modifier le titre" aria-label="Modifier le titre">
+                                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                                            <path d="M12 20h9"></path>
+                                            <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"></path>
+                                        </svg>
+                                    </button>
                                     <div class="dropdown-content" id="dropdown-titre-{{ $m->id }}">
                                         <a href="#" onclick="confirmUpdateTitle({{ $m->id }}, 'Membre')">Membre</a>
                                         <a href="#" onclick="confirmUpdateTitle({{ $m->id }}, 'Amateur')">Amateur</a>
@@ -122,41 +135,153 @@
                                         @endif
                                     </div>
                                 @else
-                                    <button class="dropbtn disabled" disabled title="Permissions insuffisantes">Modifier Titre</button>
+                                    <button type="button" class="dropbtn action-icon-btn icon-title disabled" disabled title="{{ $isDeletionPending ? 'Suppression en cours' : 'Permissions insuffisantes' }}" aria-label="Modifier le titre">
+                                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                                            <path d="M12 20h9"></path>
+                                            <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"></path>
+                                        </svg>
+                                    </button>
                                 @endif
                             </div>
 
                             <div class="dropdown action-dropdown">
-                                @if($canModify)
-                                    <button class="dropbtn" onclick="toggleDropdown('dropdown-restriction-{{ $m->id }}')">Modifier Restriction</button>
+                                @if(! $isDeletionPending && $canModify)
+                                    <button type="button" class="dropbtn action-icon-btn icon-restrictions" onclick="toggleDropdown('dropdown-restriction-{{ $m->id }}')" title="Modifier les restrictions" aria-label="Modifier les restrictions">
+                                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                                            <path d="M12 2 4 5v6c0 5 3.5 9.5 8 11 4.5-1.5 8-6 8-11V5Z"></path>
+                                            <path d="M9 12l2 2 4-4"></path>
+                                        </svg>
+                                    </button>
                                     <div class="dropdown-content" id="dropdown-restriction-{{ $m->id }}">
-                                        <a href="#" onclick="confirmUpdateRestriction({{ $m->id }}, 'Aucune')">Aucune</a>
-                                        <a href="#" onclick="confirmUpdateRestriction({{ $m->id }}, 'Salon Général')">Salon Général</a>
-                                        <a href="#" onclick="confirmUpdateRestriction({{ $m->id }}, 'Salon Anime')">Salon Anime</a>
-                                        <a href="#" onclick="confirmUpdateRestriction({{ $m->id }}, 'Salon Films')">Salon Films</a>
-                                        <a href="#" onclick="confirmUpdateRestriction({{ $m->id }}, 'Salon Séries')">Salon Séries</a>
-                                        <a href="#" onclick="confirmUpdateRestriction({{ $m->id }}, 'Modération Complète')">Modération Complète</a>
+                                        <div style="padding: 10px 12px; min-width: 220px;">
+                                            <div style="font-weight: 700; margin-bottom: 8px;">Forum</div>
+                                            <label style="display:block; margin: 6px 0; cursor:pointer;">
+                                                <input type="checkbox" value="Forum Accès Off" @if(in_array('Forum Accès Off', $currentRestrictions, true)) checked @endif>
+                                                Accès OFF
+                                            </label>
+                                            <label style="display:block; margin: 6px 0; cursor:pointer;">
+                                                <input type="checkbox" value="Forum Écriture Off" @if(in_array('Forum Écriture Off', $currentRestrictions, true)) checked @endif>
+                                                Écriture OFF
+                                            </label>
+
+                                            @if($m->titre === 'Admin')
+                                                <div style="font-weight: 700; margin: 10px 0 8px;">Admin</div>
+                                                <label style="display:block; margin: 6px 0; cursor:pointer;">
+                                                    <input type="checkbox" value="Admin Film Approuver Off" @if(in_array('Admin Film Approuver Off', $currentRestrictions, true)) checked @endif>
+                                                    Film approuver OFF
+                                                </label>
+                                                <label style="display:block; margin: 6px 0; cursor:pointer;">
+                                                    <input type="checkbox" value="Admin Film Supprimer Off" @if(in_array('Admin Film Supprimer Off', $currentRestrictions, true)) checked @endif>
+                                                    Film supprimer OFF
+                                                </label>
+                                                <label style="display:block; margin: 6px 0; cursor:pointer;">
+                                                    <input type="checkbox" value="Admin Film Modifier Off" @if(in_array('Admin Film Modifier Off', $currentRestrictions, true)) checked @endif>
+                                                    Film modifier OFF
+                                                </label>
+                                                <label style="display:block; margin: 6px 0; cursor:pointer;">
+                                                    <input type="checkbox" value="Admin Notif Off" @if(in_array('Admin Notif Off', $currentRestrictions, true)) checked @endif>
+                                                    Notif OFF
+                                                </label>
+                                                <label style="display:block; margin: 6px 0; cursor:pointer;">
+                                                    <input type="checkbox" value="Admin Conversions Off" @if(in_array('Admin Conversions Off', $currentRestrictions, true)) checked @endif>
+                                                    Conversions OFF
+                                                </label>
+                                                <label style="display:block; margin: 6px 0; cursor:pointer;">
+                                                    <input type="checkbox" value="Admin Membres Off" @if(in_array('Admin Membres Off', $currentRestrictions, true)) checked @endif>
+                                                    Membres OFF
+                                                </label>
+                                            @endif
+
+                                            <div style="display:flex; gap:8px; margin-top: 10px;">
+                                                <button type="button" class="dropbtn" style="flex:1;" onclick="confirmUpdateRestrictions({{ $m->id }})">Enregistrer</button>
+                                            </div>
+                                        </div>
                                     </div>
                                 @else
-                                    <button class="dropbtn disabled" disabled title="Permissions insuffisantes">Modifier Restriction</button>
+                                    <button type="button" class="dropbtn action-icon-btn icon-restrictions disabled" disabled title="{{ $isDeletionPending ? 'Suppression en cours' : 'Permissions insuffisantes' }}" aria-label="Modifier les restrictions">
+                                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                                            <path d="M12 2 4 5v6c0 5 3.5 9.5 8 11 4.5-1.5 8-6 8-11V5Z"></path>
+                                            <path d="M9 12l2 2 4-4"></path>
+                                        </svg>
+                                    </button>
                                 @endif
                             </div>
 
                             <div class="dropdown action-dropdown">
-                                @if($canModify)
-                                    <button class="dropbtn" onclick="showEmailForm({{ $m->id }})">Modifier Email</button>
+                                @if(! $isDeletionPending && $canModify)
+                                    <button type="button" class="dropbtn action-icon-btn icon-email" onclick="showEmailForm({{ $m->id }})" title="Modifier l'email" aria-label="Modifier l'email">
+                                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                                            <path d="M4 4h16v16H4z"></path>
+                                            <path d="m4 7 8 6 8-6"></path>
+                                        </svg>
+                                    </button>
                                 @else
-                                    <button class="dropbtn disabled" disabled title="Permissions insuffisantes">Modifier Email</button>
+                                    <button type="button" class="dropbtn action-icon-btn icon-email disabled" disabled title="{{ $isDeletionPending ? 'Suppression en cours' : 'Permissions insuffisantes' }}" aria-label="Modifier l'email">
+                                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                                            <path d="M4 4h16v16H4z"></path>
+                                            <path d="m4 7 8 6 8-6"></path>
+                                        </svg>
+                                    </button>
                                 @endif
                             </div>
 
                             <div class="dropdown action-dropdown">
-                                @if($canModify)
-                                    <button class="dropbtn" onclick="showUsernameForm({{ $m->id }})">Modifier Pseudo</button>
+                                @if(! $isDeletionPending && $canModify)
+                                    <button type="button" class="dropbtn action-icon-btn icon-username" onclick="showUsernameForm({{ $m->id }})" title="Modifier le pseudo" aria-label="Modifier le pseudo">
+                                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                                            <path d="M20 21a8 8 0 0 0-16 0"></path>
+                                            <circle cx="12" cy="8" r="4"></circle>
+                                        </svg>
+                                    </button>
                                 @else
-                                    <button class="dropbtn disabled" disabled title="Permissions insuffisantes">Modifier Pseudo</button>
+                                    <button type="button" class="dropbtn action-icon-btn icon-username disabled" disabled title="{{ $isDeletionPending ? 'Suppression en cours' : 'Permissions insuffisantes' }}" aria-label="Modifier le pseudo">
+                                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                                            <path d="M20 21a8 8 0 0 0-16 0"></path>
+                                            <circle cx="12" cy="8" r="4"></circle>
+                                        </svg>
+                                    </button>
                                 @endif
                             </div>
+
+                            <div class="dropdown action-dropdown">
+                                @if(! $isDeletionPending && $canModify)
+                                    <button type="button" class="dropbtn action-icon-btn icon-delete" onclick="requestAccountDeletion({{ $m->id }})" title="Supprimer le compte (après 24h)" aria-label="Supprimer le compte">
+                                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                                            <path d="M3 6h18"></path>
+                                            <path d="M8 6V4h8v2"></path>
+                                            <path d="M6 6l1 16h10l1-16"></path>
+                                            <path d="M10 11v6"></path>
+                                            <path d="M14 11v6"></path>
+                                        </svg>
+                                    </button>
+                                @else
+                                    <button type="button" class="dropbtn action-icon-btn icon-delete disabled" disabled title="{{ $isDeletionPending ? 'Suppression en cours' : 'Permissions insuffisantes' }}" aria-label="Supprimer le compte">
+                                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                                            <path d="M3 6h18"></path>
+                                            <path d="M8 6V4h8v2"></path>
+                                            <path d="M6 6l1 16h10l1-16"></path>
+                                            <path d="M10 11v6"></path>
+                                            <path d="M14 11v6"></path>
+                                        </svg>
+                                    </button>
+                                @endif
+                            </div>
+                            </div>
+
+                            @if($isDeletionPending)
+                                <div class="deletion-row-ui" title="Compte en cours de suppression">
+                                    <div class="deletion-row-clock">
+                                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                                            <circle cx="12" cy="12" r="9"></circle>
+                                            <path d="M12 7v6l4 2"></path>
+                                        </svg>
+                                        <span>{{ $hoursLeft }}h</span>
+                                    </div>
+                                    @if($canModify)
+                                        <button type="button" class="cancel-delete-btn" onclick="cancelAccountDeletion({{ $m->id }})" title="Annuler la suppression" aria-label="Annuler la suppression">Annuler</button>
+                                    @endif
+                                </div>
+                            @endif
                         </td>
                     </tr>
                 @endforeach
@@ -176,6 +301,8 @@
             updateUsername: @json(route('membres.username')),
             updateWarningReward: @json(route('membres.warning-reward')),
             promotion: @json(route('membres.promotion')),
+            requestDeletion: @json(route('membres.deletion.request')),
+            cancelDeletion: @json(route('membres.deletion.cancel.admin')),
         };
 
         function showNotification(message, type) {
@@ -238,11 +365,22 @@
 
             const button = parentActionDropdown.querySelector('.dropbtn');
             const rect = button.getBoundingClientRect();
-            dropdown.style.left = (rect.right - 160) + 'px';
-            dropdown.style.top = (rect.bottom + 5) + 'px';
-
+            dropdown.style.left = (rect.left + (rect.width / 2)) + 'px';
+            dropdown.style.top = (rect.bottom + 8) + 'px';
+            dropdown.style.transform = 'translateX(-50%)';
             dropdown.classList.add('show');
             parentActionDropdown.classList.add('active');
+
+            requestAnimationFrame(() => {
+                const w = dropdown.getBoundingClientRect().width || 240;
+                const half = w / 2;
+                const padding = 12;
+                const centerX = rect.left + (rect.width / 2);
+                const left = Math.min(Math.max(centerX, padding + half), window.innerWidth - padding - half);
+                dropdown.style.left = left + 'px';
+                dropdown.style.top = (rect.bottom + 8) + 'px';
+                dropdown.style.transform = 'translateX(-50%)';
+            });
         }
 
         document.addEventListener('click', (e) => {
@@ -256,9 +394,9 @@
             if (confirmed) updateTitle(id, newTitle);
         }
 
-        async function confirmUpdateRestriction(id, newRestriction) {
-            const confirmed = await customConfirm('Êtes-vous sûr de vouloir modifier la restriction de ce membre?', 'Confirmation de modification');
-            if (confirmed) updateRestriction(id, newRestriction);
+        async function confirmUpdateRestrictions(id) {
+            const confirmed = await customConfirm('Êtes-vous sûr de vouloir modifier les restrictions de ce membre?', 'Confirmation de modification');
+            if (confirmed) updateRestrictions(id);
         }
 
         function validateEmail(email) {
@@ -266,24 +404,38 @@
             return re.test(email);
         }
 
-        function showEmailForm(id) {
+        async function showEmailForm(id) {
             const currentEmail = document.getElementById('email-' + id)?.textContent || '';
-            const newEmail = prompt('Entrez la nouvelle adresse email:', currentEmail);
-            if (newEmail !== null && newEmail.trim() !== '') {
-                if (validateEmail(newEmail)) {
-                    updateEmail(id, newEmail.trim());
-                } else {
-                    customAlert('Veuillez entrer une adresse email valide.', 'Email invalide');
-                }
-            }
+            const newEmail = await customPrompt('Entrez la nouvelle adresse email :', 'Modifier l’email', {
+                defaultValue: currentEmail,
+                placeholder: 'ex: membre@email.com',
+                inputType: 'email',
+                validator: (v) => (validateEmail(v) ? '' : 'Veuillez entrer une adresse email valide.'),
+                confirmText: 'Modifier',
+            });
+            if (typeof newEmail !== 'string') return;
+            const value = newEmail.trim();
+            if (!value) return;
+            updateEmail(id, value);
         }
 
-        function showUsernameForm(id) {
+        async function showUsernameForm(id) {
             const currentUsername = document.getElementById('username-' + id)?.textContent || '';
-            const newUsername = prompt('Entrez le nouveau pseudo:', currentUsername);
-            if (newUsername !== null && newUsername.trim() !== '') {
-                updateUsername(id, newUsername.trim());
-            }
+            const newUsername = await customPrompt('Entrez le nouveau pseudo :', 'Modifier le pseudo', {
+                defaultValue: currentUsername,
+                placeholder: 'Nouveau pseudo',
+                inputType: 'text',
+                validator: (v) => {
+                    if (!v.trim()) return 'Le pseudo ne peut pas être vide.';
+                    if (v.trim().length > 30) return 'Le pseudo est trop long (max 30 caractères).';
+                    return '';
+                },
+                confirmText: 'Modifier',
+            });
+            if (typeof newUsername !== 'string') return;
+            const value = newUsername.trim();
+            if (!value) return;
+            updateUsername(id, value);
         }
 
         async function updateTitle(id, newTitle) {
@@ -300,13 +452,22 @@
             }
         }
 
-        async function updateRestriction(id, newRestriction) {
-            const response = await postJson(routes.updateRestriction, { id: id, newRestriction: newRestriction });
+        function collectRestrictionsFromDropdown(id) {
+            const dropdown = document.getElementById('dropdown-restriction-' + id);
+            if (!dropdown) return [];
+            return Array.from(dropdown.querySelectorAll('input[type="checkbox"]'))
+                .filter((i) => i.checked)
+                .map((i) => (i.value || '').trim())
+                .filter((v) => v !== '');
+        }
+
+        async function updateRestrictions(id) {
+            const restrictions = collectRestrictionsFromDropdown(id);
+            const response = await postJson(routes.updateRestriction, { id: id, restrictions: restrictions });
             if (response.success) {
                 const restrictionElement = document.getElementById('restriction-' + id);
                 if (restrictionElement) {
                     restrictionElement.textContent = response.newValue;
-                    restrictionElement.className = 'membre-restriction restriction-' + response.newValue.toLowerCase().replace(/\s+/g, '-');
                 }
                 showNotification(response.message || 'Restriction mise à jour', 'success');
             } else {
@@ -333,6 +494,35 @@
                 showNotification(response.message || 'Pseudo mis à jour', 'success');
             } else {
                 showNotification('Erreur: ' + (response.message || 'Erreur'), 'error');
+            }
+        }
+
+        async function requestAccountDeletion(id) {
+            const confirmed = await customConfirm(
+                'Confirmer la suppression de ce compte ?\n\nAprès confirmation, un email sera envoyé au membre pour annuler si besoin. Le compte sera supprimé automatiquement après 24h.',
+                'Confirmation de suppression'
+            );
+            if (! confirmed) return;
+
+            const response = await postJson(routes.requestDeletion, { id: id });
+            if (response.success) {
+                showNotification(response.message || 'Suppression planifiée', 'success');
+                setTimeout(() => window.location.reload(), 600);
+            } else {
+                showNotification(response.message || 'Erreur lors de la planification de suppression', 'error');
+            }
+        }
+
+        async function cancelAccountDeletion(id) {
+            const confirmed = await customConfirm('Annuler la suppression de ce compte ?', 'Annuler la suppression');
+            if (! confirmed) return;
+
+            const response = await postJson(routes.cancelDeletion, { id: id });
+            if (response.success) {
+                showNotification(response.message || 'Suppression annulée', 'success');
+                setTimeout(() => window.location.reload(), 600);
+            } else {
+                showNotification(response.message || 'Erreur lors de l’annulation', 'error');
             }
         }
 
@@ -370,6 +560,31 @@
         }
 
         const sortOrder = {};
+
+        let pendingDeletionLayoutRaf = 0;
+
+        function layoutPendingDeletionUi() {
+            const rows = document.querySelectorAll('tr.pending-deletion-row');
+            rows.forEach((row) => {
+                const ui = row.querySelector('.deletion-row-ui');
+                if (!ui) return;
+                const rect = row.getBoundingClientRect();
+                ui.style.position = 'fixed';
+                ui.style.left = (rect.left + (rect.width / 2)) + 'px';
+                ui.style.top = (rect.top + (rect.height / 2)) + 'px';
+                ui.style.transform = 'translate(-50%, -50%)';
+                ui.style.zIndex = '9990';
+                ui.style.pointerEvents = 'auto';
+            });
+        }
+
+        function schedulePendingDeletionLayout() {
+            if (pendingDeletionLayoutRaf) return;
+            pendingDeletionLayoutRaf = requestAnimationFrame(() => {
+                pendingDeletionLayoutRaf = 0;
+                layoutPendingDeletionUi();
+            });
+        }
 
         function sortTable(columnIndex) {
             const table = document.getElementById('membresTable');
@@ -417,6 +632,7 @@
             }
 
             updateSortIcon(columnIndex, sortOrder[columnIndex]);
+            schedulePendingDeletionLayout();
         }
 
         function updateSortIcon(columnIndex, direction) {
@@ -459,5 +675,9 @@
                     showNotification('Erreur lors du traitement de la demande', 'error');
                 });
         }
+
+        schedulePendingDeletionLayout();
+        window.addEventListener('resize', schedulePendingDeletionLayout);
+        window.addEventListener('scroll', schedulePendingDeletionLayout, { passive: true });
     </script>
 @endsection

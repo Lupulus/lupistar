@@ -4,8 +4,8 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 
 class AdminController extends Controller
@@ -16,6 +16,16 @@ class AdminController extends Controller
         if (! in_array($titre, ['Admin', 'Super-Admin'], true)) {
             abort(403);
         }
+
+        $restrictions = $this->currentRestrictions($request);
+        $isAdminUser = $titre === 'Admin';
+        $adminPermissions = [
+            'approveFilm' => ! ($isAdminUser && in_array('Admin Film Approuver Off', $restrictions, true)),
+            'deleteFilm' => ! ($isAdminUser && in_array('Admin Film Supprimer Off', $restrictions, true)),
+            'modifyFilm' => ! ($isAdminUser && in_array('Admin Film Modifier Off', $restrictions, true)),
+            'sendNotification' => ! ($isAdminUser && in_array('Admin Notif Off', $restrictions, true)),
+            'studioConversions' => ! ($isAdminUser && in_array('Admin Conversions Off', $restrictions, true)),
+        ];
 
         $stats = [
             'membres' => (int) DB::table('membres')->count(),
@@ -76,6 +86,7 @@ class AdminController extends Controller
             'sousGenres' => $sousGenres,
             'films' => $films,
             'sousGenresByFilm' => $sgByFilm,
+            'adminPermissions' => $adminPermissions,
         ]);
     }
 
@@ -183,7 +194,7 @@ class AdminController extends Controller
         }
 
         $data = $request->validate([
-            'nom_film' => ['required', 'string', 'max:50'],
+            'nom_film' => ['required', 'string', 'max:75'],
             'categorie' => ['required', 'in:Film,Animation,Anime,Série,Série d\'Animation'],
             'anime_type' => ['nullable', 'in:Film,Série'],
             'description' => ['nullable', 'string', 'max:400'],
@@ -316,9 +327,14 @@ class AdminController extends Controller
         if (! in_array($titre, ['Admin', 'Super-Admin'], true)) {
             abort(403);
         }
+        if ($titre === 'Admin' && $this->hasRestriction($request, 'Admin Film Approuver Off')) {
+            return $request->expectsJson()
+                ? response()->json(['success' => false, 'error' => 'Action bloquée par restriction'], 403)
+                : abort(403);
+        }
 
         $data = $request->validate([
-            'nom_film' => ['required', 'string', 'max:50'],
+            'nom_film' => ['required', 'string', 'max:75'],
             'categorie' => ['required', 'in:Film,Animation,Anime,Série,Série d\'Animation'],
             'description' => ['nullable', 'string'],
             'date_sortie' => ['required', 'integer'],
@@ -369,6 +385,7 @@ class AdminController extends Controller
                 'ordre_suite' => $data['ordre_suite'] ?? $ft->ordre_suite,
                 'saison' => $data['saison'] ?? $ft->saison,
                 'nbrEpisode' => $data['nbrEpisode'] ?? $ft->nbrEpisode,
+                'saison_detaillee' => $ft->saison_detaillee ?? 1,
                 'note_moyenne' => 0,
                 'studio_id' => $studioId,
                 'auteur_id' => $auteurId,
@@ -549,6 +566,9 @@ class AdminController extends Controller
         if (! in_array($titre, ['Admin', 'Super-Admin'], true)) {
             return response()->json(['error' => 'Accès non autorisé'], 403);
         }
+        if ($titre === 'Admin' && $this->hasRestriction($request, 'Admin Film Supprimer Off')) {
+            return response()->json(['error' => 'Action bloquée par restriction'], 403);
+        }
 
         $film = DB::table('films')->where('id', $id)->first(['id', 'image_path']);
         if (! $film) {
@@ -589,9 +609,12 @@ class AdminController extends Controller
         if (! in_array($titre, ['Admin', 'Super-Admin'], true)) {
             return response()->json(['success' => false, 'error' => 'Accès non autorisé'], 403);
         }
+        if ($titre === 'Admin' && $this->hasRestriction($request, 'Admin Film Modifier Off')) {
+            return response()->json(['success' => false, 'error' => 'Action bloquée par restriction'], 403);
+        }
 
         $data = $request->validate([
-            'nom_film' => ['required', 'string', 'max:50'],
+            'nom_film' => ['required', 'string', 'max:75'],
             'categorie' => ['required', 'in:Film,Animation,Anime,Série,Série d\'Animation'],
             'description' => ['nullable', 'string', 'max:400'],
             'ordre_suite' => ['nullable', 'integer', 'min:1', 'max:25'],
@@ -603,6 +626,8 @@ class AdminController extends Controller
             'pays_id' => ['required', 'integer'],
             'sous_genres' => ['required', 'array', 'min:1'],
             'sous_genres.*' => ['integer'],
+            'image' => ['nullable', 'file', 'mimes:jpg,jpeg,png,gif,webp', 'max:5120'],
+            'image_url' => ['nullable', 'url'],
         ]);
 
         $isSerie = in_array($data['categorie'], ['Série', "Série d'Animation"], true);
@@ -637,7 +662,7 @@ class AdminController extends Controller
 
         DB::beginTransaction();
         try {
-            DB::table('films')->where('id', $id)->update([
+            $update = [
                 'nom_film' => $data['nom_film'],
                 'categorie' => $data['categorie'],
                 'description' => $data['description'] ?? '',
@@ -648,7 +673,42 @@ class AdminController extends Controller
                 'studio_id' => (int) $data['studio_id'],
                 'auteur_id' => (int) $data['auteur_id'],
                 'pays_id' => (int) $data['pays_id'],
-            ]);
+            ];
+
+            $newImageRel = null;
+            if ($request->hasFile('image')) {
+                $old = DB::table('films')->where('id', $id)->value('image_path');
+                if ($old && str_starts_with((string) $old, 'publiclisteimg/')) {
+                    $oldAbs = public_path((string) $old);
+                    if (is_file($oldAbs)) {
+                        @unlink($oldAbs);
+                    }
+                }
+                $ordre = $isSerie ? 1 : (int) ($data['ordre_suite'] ?? 1);
+                $newImageRel = $this->storeFilmImage($request->file('image'), $data['nom_film'], (int) $data['date_sortie'], $ordre);
+                if ($newImageRel) {
+                    $update['image_path'] = $newImageRel;
+                }
+            } elseif (! empty($data['image_url'])) {
+                $old = DB::table('films')->where('id', $id)->value('image_path');
+                if ($old && str_starts_with((string) $old, 'publiclisteimg/')) {
+                    $oldAbs = public_path((string) $old);
+                    if (is_file($oldAbs)) {
+                        @unlink($oldAbs);
+                    }
+                }
+                $ordre = $isSerie ? 1 : (int) ($data['ordre_suite'] ?? 1);
+                $newImageRel = $this->storeFilmImageFromUrl((string) $data['image_url'], $data['nom_film'], (int) $data['date_sortie'], $ordre);
+                if ($newImageRel) {
+                    $update['image_path'] = $newImageRel;
+                } else {
+                    DB::rollBack();
+
+                    return response()->json(['success' => false, 'error' => "Impossible de sauvegarder l'image."], 500);
+                }
+            }
+
+            DB::table('films')->where('id', $id)->update($update);
 
             DB::table('films_sous_genres')->where('film_id', $id)->delete();
             $rows = array_map(fn ($sid) => ['film_id' => $id, 'sous_genre_id' => (int) $sid], $data['sous_genres']);
@@ -664,11 +724,108 @@ class AdminController extends Controller
         return response()->json(['success' => true]);
     }
 
+    public function filmsList(Request $request)
+    {
+        $titre = $request->session()->get('titre');
+        if (! in_array($titre, ['Admin', 'Super-Admin'], true)) {
+            return response()->json(['success' => false, 'error' => 'Accès non autorisé'], 403);
+        }
+        $rows = DB::table('films as f')
+            ->leftJoin('studios as s', 'f.studio_id', '=', 's.id')
+            ->leftJoin('auteurs as a', 'f.auteur_id', '=', 'a.id')
+            ->leftJoin('pays as p', 'f.pays_id', '=', 'p.id')
+            ->select(
+                'f.id',
+                'f.nom_film',
+                'f.categorie',
+                'f.image_path',
+                'f.date_sortie',
+                DB::raw("COALESCE(s.nom, 'Inconnu') as studio_nom"),
+                DB::raw("COALESCE(a.nom, 'Inconnu') as auteur_nom"),
+                DB::raw("COALESCE(p.nom, 'Inconnu') as pays_nom"),
+            )
+            ->orderByDesc('f.id')
+            ->limit(500)
+            ->get();
+
+        $films = $rows->map(function ($r) {
+            $img = (string) ($r->image_path ?? '');
+
+            return [
+                'id' => (int) $r->id,
+                'nom_film' => (string) $r->nom_film,
+                'categorie' => (string) $r->categorie,
+                'studio_nom' => (string) $r->studio_nom,
+                'pays_nom' => (string) $r->pays_nom,
+                'date_sortie' => (int) $r->date_sortie,
+                'image' => $img !== '' ? asset($img) : '',
+            ];
+        })->values();
+
+        return response()->json(['success' => true, 'films' => $films]);
+    }
+
+    public function filmDetails(Request $request, int $id)
+    {
+        $titre = $request->session()->get('titre');
+        if (! in_array($titre, ['Admin', 'Super-Admin'], true)) {
+            return response()->json(['success' => false, 'error' => 'Accès non autorisé'], 403);
+        }
+        $film = DB::table('films as f')
+            ->leftJoin('studios as s', 'f.studio_id', '=', 's.id')
+            ->leftJoin('auteurs as a', 'f.auteur_id', '=', 'a.id')
+            ->leftJoin('pays as p', 'f.pays_id', '=', 'p.id')
+            ->where('f.id', $id)
+            ->select(
+                'f.*',
+                DB::raw("COALESCE(s.nom, 'Inconnu') as studio_nom"),
+                DB::raw("COALESCE(a.nom, 'Inconnu') as auteur_nom"),
+                DB::raw("COALESCE(p.nom, 'Inconnu') as pays_nom"),
+            )
+            ->first();
+        if (! $film) {
+            return response()->json(['success' => false, 'error' => 'Film introuvable'], 404);
+        }
+        $sg = DB::table('films_sous_genres as fsg')
+            ->join('sous_genres as sg', 'fsg.sous_genre_id', '=', 'sg.id')
+            ->where('fsg.film_id', $id)
+            ->orderBy('sg.nom')
+            ->get(['sg.id', 'sg.nom'])
+            ->map(fn ($r) => ['id' => (int) $r->id, 'nom' => (string) $r->nom])
+            ->values();
+        $img = (string) ($film->image_path ?? '');
+
+        return response()->json([
+            'success' => true,
+            'film' => [
+                'id' => (int) $film->id,
+                'nom_film' => (string) $film->nom_film,
+                'categorie' => (string) $film->categorie,
+                'description' => (string) ($film->description ?? ''),
+                'ordre_suite' => $film->ordre_suite !== null ? (int) $film->ordre_suite : null,
+                'saison' => $film->saison !== null ? (int) $film->saison : null,
+                'nbrEpisode' => $film->nbrEpisode !== null ? (int) $film->nbrEpisode : null,
+                'date_sortie' => (int) $film->date_sortie,
+                'studio_id' => (int) $film->studio_id,
+                'auteur_id' => (int) $film->auteur_id,
+                'pays_id' => (int) $film->pays_id,
+                'studio_nom' => (string) $film->studio_nom,
+                'auteur_nom' => (string) $film->auteur_nom,
+                'pays_nom' => (string) $film->pays_nom,
+                'image' => $img !== '' ? asset($img) : '',
+                'sous_genres' => $sg,
+            ],
+        ]);
+    }
+
     public function sendNotification(Request $request)
     {
         $titre = $request->session()->get('titre');
         if (! in_array($titre, ['Admin', 'Super-Admin'], true)) {
             return response()->json(['success' => false, 'message' => 'Accès non autorisé.'], 403);
+        }
+        if ($titre === 'Admin' && $this->hasRestriction($request, 'Admin Notif Off')) {
+            return response()->json(['success' => false, 'message' => 'Action bloquée par restriction.'], 403);
         }
 
         $data = $request->validate([
@@ -890,6 +1047,9 @@ class AdminController extends Controller
         if (! in_array($titre, ['Admin', 'Super-Admin'], true)) {
             return response()->json(['success' => false, 'error' => 'Accès non autorisé'], 403);
         }
+        if ($titre === 'Admin' && $this->hasRestriction($request, 'Admin Conversions Off')) {
+            return response()->json(['success' => false, 'error' => 'Action bloquée par restriction'], 403);
+        }
 
         $action = (string) ($request->input('action') ?? $request->query('action') ?? '');
         $payload = $request->json()->all();
@@ -1099,6 +1259,28 @@ class AdminController extends Controller
         ]);
     }
 
+    private function currentRestrictions(Request $request): array
+    {
+        $userId = $request->session()->get('user_id');
+        $userId = is_numeric($userId) ? (int) $userId : 0;
+        if ($userId <= 0) {
+            return [];
+        }
+
+        $raw = (string) (DB::table('membres')->where('id', $userId)->value('restriction') ?? '');
+        $list = array_values(array_filter(array_map(
+            static fn ($v) => trim((string) $v),
+            explode(',', $raw)
+        ), static fn ($v) => $v !== '' && $v !== 'Aucune'));
+
+        return array_values(array_unique($list));
+    }
+
+    private function hasRestriction(Request $request, string $restriction): bool
+    {
+        return in_array($restriction, $this->currentRestrictions($request), true);
+    }
+
     protected function notifyUser(int $userId, string $titre, string $message, string $type): void
     {
         DB::table('notifications')->insert([
@@ -1246,17 +1428,26 @@ class AdminController extends Controller
         }
         try {
             $res = Http::timeout(10)->get($url);
-            if (! $res->ok()) return null;
+            if (! $res->ok()) {
+                return null;
+            }
             $body = $res->body();
-            if ($body === '' || $body === null) return null;
+            if ($body === '' || $body === null) {
+                return null;
+            }
             $ext = 'jpg';
             if (preg_match('/image\\/(jpeg|jpg|png|gif|webp)/i', (string) $res->header('Content-Type'))) {
                 $ext = Str::lower(preg_replace('/^image\\//i', '', (string) $res->header('Content-Type')));
             } else {
-                if (str_ends_with(Str::lower($url), '.png')) $ext = 'png';
-                elseif (str_ends_with(Str::lower($url), '.webp')) $ext = 'webp';
+                if (str_ends_with(Str::lower($url), '.png')) {
+                    $ext = 'png';
+                } elseif (str_ends_with(Str::lower($url), '.webp')) {
+                    $ext = 'webp';
+                }
             }
-            if (! in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'webp'], true)) $ext = 'jpg';
+            if (! in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'webp'], true)) {
+                $ext = 'jpg';
+            }
             $safe = Str::of($nom)->ascii()->replaceMatches('/[^a-zA-Z0-9]/', '_')->replaceMatches('/_+/', '_')->trim('_')->toString();
             $dir = public_path('publiclisteimg');
             if (! is_dir($dir)) {
@@ -1265,6 +1456,7 @@ class AdminController extends Controller
             $rel = 'publiclisteimg/'.$annee.'-'.$safe.'_'.$ordre.'.'.$ext;
             $abs = public_path($rel);
             @file_put_contents($abs, $body);
+
             return $rel;
         } catch (\Throwable $e) {
             return null;
@@ -1288,7 +1480,11 @@ class AdminController extends Controller
         }
         $rows = $q->get(['id', 'nom']);
         foreach ($rows as $r) {
-            $options[(int) $r->id] = (string) $r->nom;
+            $nom = (string) $r->nom;
+            if (in_array(mb_strtolower(trim($nom)), ['animation familiale', 'animation familiales'], true)) {
+                $nom = 'Familial';
+            }
+            $options[(int) $r->id] = $nom;
         }
 
         return $options;

@@ -234,6 +234,152 @@
     }
 }
 
+/* Tableau des films */
+.films-table-wrapper {
+    margin : 3rem 3.5rem 1.5rem 3.5rem;
+    background: var(--secondary-dark);
+    border: 2px solid var(--accent-orange);
+    border-radius: 12px;
+    box-shadow: 0 8px 25px var(--shadow-darker);
+    overflow: hidden;
+    height: 34.5rem;
+    overflow-y: auto;
+}
+
+.admin-films-table {
+    color: var(--text-white);
+}
+
+.films-table-wrapper .admin-films-table {
+    box-shadow: none;
+    border-radius: 0;
+}
+
+.films-table-wrapper .admin-films-table thead {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+}
+
+.admin-films-table th,
+.admin-films-table td {
+    vertical-align: middle;
+}
+
+.admin-films-table tbody tr {
+    cursor: pointer;
+}
+
+.admin-films-table td {
+    box-sizing: border-box;
+    height: 8rem;
+    padding: 0.2rem;
+}
+
+.admin-films-table th:nth-child(2),
+.admin-films-table td:nth-child(2) {
+    text-align: left;
+}
+
+.admin-films-table th:nth-child(1),
+.admin-films-table td:nth-child(1) {
+    text-align: center;
+}
+
+.admin-films-table th:nth-child(3),
+.admin-films-table td:nth-child(3),
+.admin-films-table th:nth-child(4),
+.admin-films-table td:nth-child(4),
+.admin-films-table th:nth-child(5),
+.admin-films-table td:nth-child(5),
+.admin-films-table th:nth-child(6),
+.admin-films-table td:nth-child(6),
+.admin-films-table th:nth-child(7),
+.admin-films-table td:nth-child(7) {
+    text-align: center;
+}
+
+.admin-films-table th:nth-child(1),
+.admin-films-table td:nth-child(1) {
+    width: 10%;
+}
+
+.admin-films-table th:nth-child(2),
+.admin-films-table td:nth-child(2) {
+    width: 28%;
+}
+
+.admin-films-table th:nth-child(3),
+.admin-films-table td:nth-child(3) {
+    width: 14%;
+}
+
+.admin-films-table th:nth-child(4),
+.admin-films-table td:nth-child(4) {
+    width: 16%;
+}
+
+.admin-films-table th:nth-child(5),
+.admin-films-table td:nth-child(5) {
+    width: 12%;
+}
+
+.admin-films-table th:nth-child(6),
+.admin-films-table td:nth-child(6) {
+    width: 8%;
+}
+
+.admin-film-thumb {
+    display: block;
+    height: 100%;
+    max-height: 100%;
+    aspect-ratio: 2 / 3;
+    width: auto;
+    object-fit: cover;
+    border-radius: 4px;
+    box-shadow: 0 2px 6px var(--shadow-dark);
+    border: 2px solid rgba(255, 140, 0, 0.35);
+}
+
+.film-actions-cell {
+    width: 110px;
+    padding: 0.2rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+}
+
+.film-icon-btn {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 0.15rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.12s ease, filter 0.12s ease;
+}
+
+.film-icon-btn.edit {
+    color: var(--accent-orange);
+}
+
+.film-icon-btn.delete {
+    color: #dc3545;
+}
+
+.film-action-icon {
+    width: 1.25rem;
+    height: 1.25rem;
+    display: block;
+}
+
+.film-icon-btn:hover {
+    transform: scale(1.12);
+    filter: brightness(1.08);
+}
+
 /* Reset et base */
 html,
 body {
@@ -499,7 +645,7 @@ form input[type="submit"]:hover {
 /* ============================================================================ */
 /*                     Film ajouté récemment (admin page)!                      */
 /* ============================================================================ */
-h2 {
+.admin-section > h2 {
     display: flex;
     justify-content: center;
     align-items: center;
@@ -986,11 +1132,16 @@ h2 {
     font-weight: 600;
     color: var(--accent-orange);
     font-size: 1.1em;
+    min-width: 0;
+}
+
+.membre-username-inner {
     display: flex;
     align-items: center;
     gap: 12px;
     height: 100%;
-    min-height: 40px; /* Assure une hauteur minimale */
+    min-height: 40px;
+    min-width: 0;
 }
 
 .membre-photo-profil {
@@ -1009,6 +1160,10 @@ h2 {
 
 .membre-nom {
     flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 /* Badge de notification pour les demandes de promotion */
@@ -1284,7 +1439,7 @@ h2 {
 /*                           Modal Films en attente                            */
 /* ============================================================================ */
 
-.modal {
+#pendingFilmModal {
     position: fixed;
     z-index: 1000;
     left: 0;
@@ -1295,7 +1450,7 @@ h2 {
     backdrop-filter: blur(5px);
 }
 
-.modal-content {
+#pendingFilmModal .modal-content {
     background: linear-gradient(135deg, var(--secondary-dark) 0%, var(--tertiary-dark) 100%);
     margin: 2% auto;
     padding: 0;
@@ -1309,7 +1464,7 @@ h2 {
     position: relative;
 }
 
-.modal-content .close {
+#pendingFilmModal .modal-content .close {
     color: var(--text-light-gray);
     float: right;
     font-size: 28px;
@@ -1322,11 +1477,11 @@ h2 {
     transition: color 0.3s ease;
 }
 
-.modal-content .close:hover {
+#pendingFilmModal .modal-content .close:hover {
     color: var(--accent-orange);
 }
 
-.modal-content h3 {
+#pendingFilmModal .modal-content h3 {
     color: var(--text-white);
     text-align: center;
     padding: 1.5rem 2rem;
@@ -1337,15 +1492,15 @@ h2 {
     text-shadow: 1px 1px 2px var(--shadow-dark);
 }
 
-.modal-body {
+#pendingFilmModal .modal-body {
     padding: 2rem;
     display: grid;
     grid-template-columns: 2fr 1fr;
     gap: 2rem;
 }
 
-.film-info-section h4,
-.admin-actions-section h4 {
+#pendingFilmModal .film-info-section h4,
+#pendingFilmModal .admin-actions-section h4 {
     color: var(--accent-orange);
     font-weight: 600;
     margin: 0 0 1rem 0;
@@ -1353,19 +1508,19 @@ h2 {
     border-bottom: 2px solid var(--accent-orange);
 }
 
-.film-details {
+#pendingFilmModal .film-details {
     display: grid;
     gap: 1rem;
 }
 
-.detail-row {
+#pendingFilmModal .detail-row {
     display: grid;
     grid-template-columns: 150px 1fr;
     gap: 1rem;
     align-items: center;
 }
 
-.detail-row label {
+#pendingFilmModal .detail-row label {
     color: var(--text-white);
     font-weight: 600;
     font-size: 0.95em;
@@ -1440,7 +1595,7 @@ h2 {
     font-size: 0.85rem;
 }
 
-.admin-actions-section {
+#pendingFilmModal .admin-actions-section {
     background: var(--primary-dark);
     padding: 1.5rem;
     border-radius: 12px;
@@ -1553,18 +1708,23 @@ h2 {
 
 /* Styles pour la colonne des actions */
 .actions-cell {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-    align-items: stretch;
     min-width: 200px;
     position: relative;
     z-index: auto;
-    top: -5rem;
+}
+
+.actions-cell .actions-cell-inner {
+    display: flex;
+    flex-direction: row;
+    gap: 0.5rem;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: nowrap;
+    height: 100%;
 }
 
 .action-dropdown {
-    width: 100%;
+    width: auto;
     position: relative;
     z-index: auto;
 }
@@ -1582,10 +1742,154 @@ h2 {
     position: relative;
 }
 
+.action-dropdown .dropbtn.action-icon-btn {
+    width: 2.5rem;
+    height: 2.5rem;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+    gap: 0;
+}
+
+.action-dropdown .dropbtn.action-icon-btn svg {
+    width: 18px;
+    height: 18px;
+    display: block;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.action-dropdown .dropbtn.action-icon-btn.icon-title {
+    color: var(--accent-orange);
+}
+
+.action-dropdown .dropbtn.action-icon-btn.icon-restrictions {
+    color: #a78bfa;
+}
+
+.action-dropdown .dropbtn.action-icon-btn.icon-email {
+    color: #60a5fa;
+}
+
+.action-dropdown .dropbtn.action-icon-btn.icon-username {
+    color: #34d399;
+}
+
+.action-dropdown .dropbtn.action-icon-btn.icon-delete {
+    color: #f87171;
+}
+
+.action-dropdown .dropbtn.action-icon-btn.icon-cancel-delete {
+    color: #fbbf24;
+}
+
+.actions-cell.pending-deletion .action-dropdown .dropbtn {
+    opacity: 0.45;
+    pointer-events: none;
+}
+
+.membres-table tbody tr.pending-deletion-row td {
+    position: relative;
+}
+
+.membres-table tbody tr.pending-deletion-row td::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(248, 113, 113, 0.32);
+    border-top: 1px solid rgba(248, 113, 113, 0.35);
+    border-bottom: 1px solid rgba(248, 113, 113, 0.35);
+    z-index: 5;
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+}
+
+.membres-table tbody tr.pending-deletion-row td:first-child::after {
+    border-left: 1px solid rgba(248, 113, 113, 0.35);
+    border-top-left-radius: 12px;
+    border-bottom-left-radius: 12px;
+}
+
+.membres-table tbody tr.pending-deletion-row td:last-child::after {
+    border-right: 1px solid rgba(248, 113, 113, 0.35);
+    border-top-right-radius: 12px;
+    border-bottom-right-radius: 12px;
+}
+
+.membres-table tbody tr.pending-deletion-row:hover {
+    background: var(--tertiary-dark);
+    box-shadow: none;
+}
+
+.membres-table tbody tr.pending-deletion-row td > *:not(.deletion-row-ui) {
+    opacity: 0.18;
+    filter: blur(0.6px);
+}
+
+.membres-table tbody tr.pending-deletion-row {
+    pointer-events: none;
+}
+
+.deletion-row-ui {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    z-index: 6;
+    pointer-events: auto;
+}
+
+.deletion-row-ui .deletion-row-clock {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #f87171;
+    font-weight: 800;
+    font-size: 1.2em;
+}
+
+.deletion-row-ui .deletion-row-clock svg {
+    width: 30px;
+    height: 30px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.cancel-delete-btn {
+    background: rgba(0, 0, 0, 0.15);
+    color: #ffe6e6;
+    border: 1px solid rgba(248, 113, 113, 0.55);
+    border-radius: 10px;
+    padding: 8px 10px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.cancel-delete-btn:hover {
+    background: rgba(248, 113, 113, 0.18);
+    border-color: rgba(248, 113, 113, 0.9);
+}
+
 .action-dropdown .dropdown-content {
-    width: 100%;
+    width: auto;
     min-width: 180px;
     z-index: 100001 !important;
+    position: fixed;
+    right: auto;
+    margin-top: 0;
 }
 
 /* Amélioration du z-index pour les dropdowns */

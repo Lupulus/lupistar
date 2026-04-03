@@ -7,11 +7,15 @@ use App\Models\ForumDiscussion;
 use App\Services\ForumContentFormatter;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use MongoDB\BSON\ObjectId;
 
 class ForumCommentController extends Controller
 {
     public function store(Request $request)
     {
+        $this->ensureForumAccess($request);
+        $this->ensureForumWrite($request);
+
         $userId = $request->session()->get('user_id');
         $userId = is_numeric($userId) ? (int) $userId : null;
         if (! $userId) {
@@ -61,6 +65,7 @@ class ForumCommentController extends Controller
                     'edited_by' => null,
                 ]);
                 $insertedId = $r->getInsertedId();
+
                 return $r;
             });
 
@@ -107,6 +112,9 @@ class ForumCommentController extends Controller
 
     public function update(Request $request, string $id)
     {
+        $this->ensureForumAccess($request);
+        $this->ensureForumWrite($request);
+
         $userId = $request->session()->get('user_id');
         $userId = is_numeric($userId) ? (int) $userId : null;
         if (! $userId) {
@@ -187,6 +195,9 @@ class ForumCommentController extends Controller
 
     public function destroy(Request $request, string $id)
     {
+        $this->ensureForumAccess($request);
+        $this->ensureForumWrite($request);
+
         $userId = $request->session()->get('user_id');
         $userId = is_numeric($userId) ? (int) $userId : null;
         if (! $userId) {
@@ -387,9 +398,52 @@ class ForumCommentController extends Controller
     private function toObjectId(string $id)
     {
         try {
-            return new \MongoDB\BSON\ObjectId($id);
+            return new ObjectId($id);
         } catch (\Throwable) {
             abort(404);
         }
+    }
+
+    private function ensureForumAccess(Request $request): void
+    {
+        $userId = $request->session()->get('user_id');
+        $userId = is_numeric($userId) ? (int) $userId : 0;
+        if ($userId <= 0) {
+            return;
+        }
+
+        if (in_array('Forum Accès Off', $this->currentRestrictions($request), true)) {
+            abort(403);
+        }
+    }
+
+    private function ensureForumWrite(Request $request): void
+    {
+        $userId = $request->session()->get('user_id');
+        $userId = is_numeric($userId) ? (int) $userId : 0;
+        if ($userId <= 0) {
+            return;
+        }
+
+        if (in_array('Forum Écriture Off', $this->currentRestrictions($request), true)) {
+            abort(403);
+        }
+    }
+
+    private function currentRestrictions(Request $request): array
+    {
+        $userId = $request->session()->get('user_id');
+        $userId = is_numeric($userId) ? (int) $userId : 0;
+        if ($userId <= 0) {
+            return [];
+        }
+
+        $raw = (string) (DB::table('membres')->where('id', $userId)->value('restriction') ?? '');
+        $list = array_values(array_filter(array_map(
+            static fn ($v) => trim((string) $v),
+            explode(',', $raw)
+        ), static fn ($v) => $v !== '' && $v !== 'Aucune'));
+
+        return array_values(array_unique($list));
     }
 }

@@ -14,7 +14,9 @@
             $studioName = $film->studio?->nom ?? 'Inconnu';
             $dateSortie = $film->date_sortie ?? '';
             $isSerie = is_numeric($film->saison) && (int) $film->saison > 0;
-            $noteValue = $isMyList ? ($film->user_note ?? null) : ($film->note_moyenne ?? null);
+            $noteValue = $isMyList
+                ? ($film->user_note ?? null)
+                : ($film->note_moyenne_global ?? ($film->note_moyenne ?? null));
             $noteFloat = is_numeric($noteValue) ? (float) $noteValue : null;
             $filledStars = $noteFloat === null ? 0 : (int) floor($noteFloat);
         @endphp
@@ -24,24 +26,37 @@
                 <img src="{{ asset($imagePath) }}" alt="{{ $film->nom_film }}">
             </div>
 
-            <div class="film-metadata">
+            <div class="film-details">
                 <h3 class="nom">
                     {{ $film->nom_film }}
                     @if($isSerie)
+                        @php
+                            $isSaisonDetaillee = (bool) ($film->saison_detaillee ?? true);
+                        @endphp
                         <span class="serie-info">
-                            S{{ (int) $film->saison }}@if(!empty($film->nbrEpisode)) ({{ (int) $film->nbrEpisode }} ép.) @endif
+                            @if($isSaisonDetaillee)
+                                S{{ (int) $film->saison }}
+                            @else
+                                {{ (int) $film->saison }} saison(s)
+                            @endif
+                            @if(!empty($film->nbrEpisode)) ({{ (int) $film->nbrEpisode }} ép.) @endif
                         </span>
                     @endif
                 </h3>
-                <p class="studio"><strong>Studio:</strong> {{ $studioName }}</p>
-                <p class="date"><strong>Sortie:</strong> {{ $dateSortie }}</p>
-                @if(! $isSerie && !empty($film->nbrEpisode))
-                    <p class="episodes"><strong>Épisodes:</strong> {{ (int) $film->nbrEpisode }}</p>
-                @endif
-            </div>
 
-            <div class="film-description">
-                <p class="description"><strong>Description:</strong> {{ $film->description ?? '' }}</p>
+                <div class="film-details-grid">
+                    <div class="film-metadata">
+                        <p class="studio"><strong>Studio:</strong> {{ $studioName }}</p>
+                        <p class="date"><strong>Sortie:</strong> {{ $dateSortie }}</p>
+                        @if(! $isSerie && !empty($film->nbrEpisode))
+                            <p class="episodes"><strong>Épisodes:</strong> {{ (int) $film->nbrEpisode }}</p>
+                        @endif
+                    </div>
+
+                    <div class="film-description">
+                        <p class="description"><strong>Description:</strong> {{ $film->description ?? '' }}</p>
+                    </div>
+                </div>
             </div>
 
             <div class="film-rating">

@@ -253,6 +253,22 @@ body {
     font-style: italic;
 }
 
+.membre-titre {
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-weight: 600;
+    text-align: center;
+    display: inline-block;
+    min-width: 80px;
+}
+
+.titre-membre { background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%); color: var(--text-white); }
+.titre-amateur { background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: var(--text-white); }
+.titre-fan { background: linear-gradient(135deg, #007bff 0%, #0056b3 100%); color: var(--text-white); }
+.titre-nolife { background: linear-gradient(135deg, #6f42c1 0%, #5a32a3 100%); color: var(--text-white); }
+.titre-admin { background: linear-gradient(135deg, var(--accent-orange) 0%, var(--accent-orange-hover) 100%); color: var(--text-white); }
+.titre-super-admin { background: linear-gradient(135deg, #dc3545 0%, #c82333 100%); color: var(--text-white); }
+
 /* Section statistiques - Colonne 3 */
 .stats-section {
     background: var(--secondary-dark);

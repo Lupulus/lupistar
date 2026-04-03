@@ -39,11 +39,23 @@
     @endif
 </div>
 <div class="modal-right">
+    @php
+        $isSerie = in_array((string) $film->categorie, ['Série', "Série d'Animation"], true) || ((string) $film->categorie === 'Anime' && $film->ordre_suite === null);
+        $isSaisonDetaillee = (bool) ($film->saison_detaillee ?? true);
+    @endphp
     <p id="modal-categorie"><strong>Catégorie :</strong> {{ $film->categorie }}</p>
     <p id="modal-studio"><strong>Studio :</strong> {{ $film->studio?->nom ?? 'Inconnu' }}</p>
     <p id="modal-date"><strong>Date de sortie :</strong> {{ $film->date_sortie }}</p>
     <p id="modal-pays"><strong>Pays :</strong> {{ $film->pays?->nom ?? 'Inconnu' }}</p>
     <p id="modal-auteur"><strong>Auteur :</strong> {{ $film->auteur?->nom ?? 'Inconnu' }}</p>
+    @if($isSerie)
+        @if($isSaisonDetaillee)
+            <p id="modal-saison"><strong>Saison :</strong> {{ $film->saison }}</p>
+        @else
+            <p id="modal-nombre-saison"><strong>Nombre de saison :</strong> {{ $film->saison }}</p>
+        @endif
+        <p id="modal-nombre-episodes"><strong>Nombre d'épisode :</strong> {{ $film->nbrEpisode }}</p>
+    @endif
     <p id="modal-description"><strong>Description :</strong> {!! nl2br(e($film->description)) !!}</p>
 
     @if(!empty($isLoggedIn))

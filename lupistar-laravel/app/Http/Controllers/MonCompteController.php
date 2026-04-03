@@ -105,6 +105,7 @@ class MonCompteController extends Controller
 
             if ($recompenses < $cout) {
                 $manquant = $cout - $recompenses;
+
                 return ['ok' => false, 'status' => 422, 'message' => "Il vous manque $manquant récompense(s) pour demander cette promotion"];
             }
 
@@ -285,17 +286,24 @@ class MonCompteController extends Controller
         $userId = $request->session()->get('user_id');
         $userId = is_numeric($userId) ? (int) $userId : null;
 
-        $ackVersion = 0;
-        if ($userId) {
-            $raw = DB::table('user_preferences')
-                ->where('user_id', $userId)
-                ->where('preference_type', 'privacy_policy_ack')
-                ->value('preference_value');
-            $ackVersion = is_numeric($raw) ? (int) $raw : 0;
-        } else {
-            $cookieValue = $request->cookie('pp_ack');
-            $ackVersion = is_numeric($cookieValue) ? (int) $cookieValue : 0;
+        if (! $userId) {
+            return response()->json([
+                'success' => true,
+                'should_show' => false,
+                'current_version' => $currentVersion,
+                'ack_version' => 0,
+                'message' => $message,
+                'updated_at' => $updatedAt,
+                'policy_url' => route('confidentialite'),
+            ]);
         }
+
+        $ackVersion = 0;
+        $raw = DB::table('user_preferences')
+            ->where('user_id', $userId)
+            ->where('preference_type', 'privacy_policy_ack')
+            ->value('preference_value');
+        $ackVersion = is_numeric($raw) ? (int) $raw : 0;
 
         return response()->json([
             'success' => true,

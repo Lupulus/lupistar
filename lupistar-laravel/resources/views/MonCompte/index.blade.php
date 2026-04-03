@@ -22,7 +22,7 @@
             </div>
             <div class="info-group">
                 <label>Titre</label>
-                <input type="text" value="{{ $titre }}" disabled>
+                <span class="membre-titre titre-{{ strtolower(str_replace('-', '-', $titre)) }}">{{ $titre }}</span>
             </div>
             @if(session('status'))
                 <div class="message success">{{ session('status') }}</div>
@@ -205,7 +205,7 @@
 
         function renderNotificationMessage(message) {
             const escaped = escapeHtml(message);
-            return escaped.replace(/(https?:\/\/[^\s<]+)/g, (url) => `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`);
+            return escaped.replace(/(https?:\/\/[^\s<]+)/g, (url) => `<a href="${url}">${url}</a>`);
         }
 
         async function loadCategoriesPreferences() {
