@@ -322,7 +322,21 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     document.addEventListener('click', (event) => {
-        if (event.target.closest('.wolf-view')) return;
+        const wolf = event.target.closest('.wolf-view');
+        if (wolf) {
+            if (modal.style.display === 'flex' && modalContent.contains(wolf)) return;
+
+            const path = window.location.pathname || '';
+            const isListePage = path.includes('/liste') && !path.includes('/ma-liste');
+            if (isListePage) {
+                const filmBox = wolf.closest('.film-box');
+                const filmId = filmBox?.getAttribute('data-id') || wolf.getAttribute('data-id');
+                if (filmId) {
+                    openModalForFilmId(filmId);
+                }
+            }
+            return;
+        }
 
         const clickable = event.target.closest('.recent-film-item, .film-box');
         if (!clickable) return;

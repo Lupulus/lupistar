@@ -127,6 +127,19 @@
         </div>
     </div>
 
+    <div id="results-feedback" class="results-feedback">
+        @php
+            $total = (int) $paginator->total();
+            $current = (int) $paginator->currentPage();
+            $last = (int) $paginator->lastPage();
+        @endphp
+        @if($total === 0)
+            Aucun résultat pour ces filtres.
+        @else
+            {{ $total }} résultat(s) trouvé(s) • Page {{ $current }}/{{ $last }}
+        @endif
+    </div>
+
     <div id="tabcontent" class="tabcontent">
         <div id="films-container">
             @include('Liste._films-grid', ['films' => $paginator->items(), 'isMyList' => true, 'myFilmIds' => []])

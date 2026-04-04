@@ -10,6 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const resetBtn = document.querySelector('.reset-btn');
     const filmsContainer = document.getElementById('films-container');
     const paginationContainer = document.getElementById('pagination-container');
+    const resultsFeedback = document.getElementById('results-feedback');
     const tabsContainer = document.querySelector('.tab');
 
     if (!searchBar || !studioFilter || !anneeFilter || !noteFilter || !searchBtn || !resetBtn || !filmsContainer || !paginationContainer) {
@@ -184,7 +185,24 @@ document.addEventListener('DOMContentLoaded', () => {
             filmsContainer.innerHTML = data.html || '';
             paginationContainer.innerHTML = data.pagination_html || '';
 
-            updateUrl(page);
+            const p = data.pagination || {};
+            const currentPage = typeof p.current_page === 'number' ? p.current_page : page;
+
+            if (resultsFeedback) {
+                const total = typeof p.total === 'number' ? p.total : null;
+                const lastPage = typeof p.last_page === 'number' ? p.last_page : null;
+
+                if (total === null) {
+                    resultsFeedback.textContent = '';
+                } else if (total === 0) {
+                    resultsFeedback.textContent = 'Aucun résultat pour ces filtres.';
+                } else {
+                    const pageInfo = lastPage ? ` • Page ${currentPage}/${lastPage}` : '';
+                    resultsFeedback.textContent = `${total} résultat(s) trouvé(s)${pageInfo}`;
+                }
+            }
+
+            updateUrl(currentPage);
         } catch {
         }
     };
@@ -192,13 +210,45 @@ document.addEventListener('DOMContentLoaded', () => {
     const attachPaginationEvents = () => {
         paginationContainer.addEventListener('click', (event) => {
             const link = event.target.closest('a[data-page]');
-            if (!link) return;
+            if (link) {
+                event.preventDefault();
+
+                const page = link.getAttribute('data-page');
+                if (!page || isNaN(page)) return;
+
+                refreshFilms(parseInt(page, 10));
+                return;
+            }
+
+            const goBtn = event.target.closest('button.pagination-go-btn');
+            if (!goBtn) return;
+
+            const paginationRoot = paginationContainer.querySelector('.pagination');
+            const input = paginationRoot?.querySelector('input.pagination-go-input');
+            const raw = (input?.value || '').trim();
+            const wanted = parseInt(raw, 10);
+            if (!raw || isNaN(wanted)) return;
+
+            const last = paginationRoot?.getAttribute('data-last-page');
+            const lastPage = last && !isNaN(last) ? parseInt(last, 10) : null;
+            const clamped = lastPage ? Math.max(1, Math.min(wanted, lastPage)) : Math.max(1, wanted);
+            refreshFilms(clamped);
+        });
+
+        paginationContainer.addEventListener('keydown', (event) => {
+            const input = event.target.closest('input.pagination-go-input');
+            if (!input) return;
+            if (event.key !== 'Enter') return;
             event.preventDefault();
+            const raw = (input.value || '').trim();
+            const wanted = parseInt(raw, 10);
+            if (!raw || isNaN(wanted)) return;
 
-            const page = link.getAttribute('data-page');
-            if (!page || isNaN(page)) return;
-
-            refreshFilms(parseInt(page, 10));
+            const paginationRoot = input.closest('.pagination');
+            const last = paginationRoot?.getAttribute('data-last-page');
+            const lastPage = last && !isNaN(last) ? parseInt(last, 10) : null;
+            const clamped = lastPage ? Math.max(1, Math.min(wanted, lastPage)) : Math.max(1, wanted);
+            refreshFilms(clamped);
         });
     };
 
