@@ -137,6 +137,10 @@
     color: var(--text-medium-gray);
 }
 
+/* ============================================================================ */
+/*                                  TABLET                                      */
+/* ============================================================================ */
+
 @media (max-width: 900px) {
     .admin-film-modif-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -147,12 +151,30 @@
     }
 }
 
+/* ============================================================================ */
+/*                                   MOBILE                                     */
+/*              Ne pas modifier la section "ordi" au-dessus                       */
+/* ============================================================================ */
+
 @media (max-width: 600px) {
+    .admin-film-modif-modal .admin-film-modif-body {
+        padding: 1.1rem;
+    }
+
+    .admin-film-modif-modal input,
+    .admin-film-modif-modal select,
+    .admin-film-modif-modal textarea {
+        padding: 0.75rem 0.9rem;
+        font-size: 1rem;
+        border-radius: 12px;
+    }
+
     .admin-film-modif-grid {
         grid-template-columns: 1fr;
     }
 
     .admin-film-modif-checkbox-grid {
         grid-template-columns: 1fr;
+        max-height: 220px;
     }
 }

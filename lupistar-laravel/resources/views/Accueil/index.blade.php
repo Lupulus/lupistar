@@ -32,7 +32,10 @@
 
                                         <div class="film-details">
                                             <h3>{{ $film->nom_film }}</h3>
-                                            <p class="studio"><strong><u>Studio:</u>&nbsp;</strong>{{ $film->studio?->nom ?? 'Inconnu' }}</p>
+                                            <p class="studio">
+                                                <strong><u>Studio:</u></strong>
+                                                <span class="studio-value">{{ $film->studio?->nom ?? 'Inconnu' }}</span>
+                                            </p>
                                             <p class="date-sortie"><strong><u>Année:</u>&nbsp;</strong>{{ $film->date_sortie }}</p>
                                         </div>
                                     </div>

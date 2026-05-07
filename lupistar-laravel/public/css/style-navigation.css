@@ -409,77 +409,114 @@ footer nav a:hover::after {
 }
 
 /* ============================================================================ */
-/*                              MEDIA QUERIES                                  */
+/*                                   MOBILE                                     */
+/*              Ne pas modifier la section "ordi" au-dessus                       */
 /* ============================================================================ */
 
-/* Media queries pour les résolutions plus petites */
 @media screen and (max-width: 768px) {
     .navbar {
-        padding: 0;
-        flex-direction: column;
         height: auto;
-        padding: 1rem 0;
+        padding: 0.75rem 0.75rem 0.5rem 0.75rem;
+        flex-direction: column;
+        gap: 0.5rem;
     }
-    
-    .navbar .gif {
+
+    .navbar-brand {
         padding-left: 0;
+        gap: 0.5rem;
     }
-    
+
+    .navbar-brand .gif {
+        height: 34px;
+    }
+
+    .navbar-brand .navbar-logo {
+        height: 3.25rem;
+    }
+
     .menu {
-        gap: 1rem;
+        position: static;
+        left: auto;
+        transform: none;
+        width: 100%;
+        height: auto;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        justify-content: center;
+        padding: 0.25rem 0;
+    }
+
+    .menu .btn {
+        font-size: 15px;
+        padding: 10px 12px;
+        border-radius: 10px;
+    }
+
+    .profil {
+        margin: 0.25rem 0 0 0;
+    }
+
+    .profil img {
+        width: 3rem;
+        height: 3rem;
+    }
+
+    .menu-deroulant {
+        right: 0;
+        top: calc(100% + 8px);
+        margin-top: 0;
+        min-width: 200px;
+    }
+
+    .profil:hover .menu-deroulant {
+        display: none;
+    }
+
+    .profil:focus-within .menu-deroulant {
+        display: block;
+    }
+
+    footer {
+        padding: 0.75rem;
+    }
+
+    .footer-top .footer-gif {
+        height: 1.6rem;
+        top: 0.6rem;
+    }
+
+    footer nav {
+        display: flex;
         flex-wrap: wrap;
         justify-content: center;
-        width: 100%;
-        margin-right: 0;
+        gap: 0.75rem;
     }
-    
-    .menu .btn {
-        font-size: 16px;
-        padding: 10px 15px;
-    }
-    
-    .profil {
-        margin-right: 0;
-        margin-top: 1rem;
-    }
-    
-    .menu-deroulant {
-        position: fixed;
-        right: 10px;
-        top: auto;
-        bottom: 10px;
-        margin-top: 0;
+
+    footer nav a {
+        font-size: 0.9rem;
     }
 }
 
 @media screen and (max-width: 480px) {
-    .menu {
-        gap: 0.5rem;
+    .navbar {
+        padding: 0.65rem 0.6rem 0.5rem 0.6rem;
     }
-    
+
+    .navbar-brand .navbar-logo {
+        height: 2.75rem;
+    }
+
     .menu .btn {
         font-size: 14px;
-        padding: 8px 12px;
+        padding: 9px 10px;
     }
-    
-    .navbar .gif {
-        height: 50px;
-    }
-    
+
     .profil img {
-        width: 40px;
-        height: 40px;
+        width: 2.75rem;
+        height: 2.75rem;
     }
-    
-    footer {
-        padding: 0.5rem;
-    }
-    
+
     footer p {
-        font-size: 0.8rem;
-    }
-    
-    footer nav a {
-        font-size: 0.8rem;
+        font-size: 0.82rem;
     }
 }

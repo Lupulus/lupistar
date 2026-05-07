@@ -72,3 +72,43 @@
     margin: 0 auto;
     box-shadow: 0 8px 25px var(--shadow-darker);
 }
+
+/* ============================================================================ */
+/*                                   MOBILE                                     */
+/*              Ne pas modifier la section "ordi" au-dessus                       */
+/* ============================================================================ */
+
+@media (max-width: 768px) {
+    .database-container {
+        margin: 1.25rem 0.75rem 2.5rem 0.75rem;
+        padding: 1.1rem;
+    }
+
+    .database-container h2 {
+        font-size: 1.5em;
+        margin-bottom: 18px;
+    }
+
+    .database-actions {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+    }
+
+    .database-btn {
+        width: 100%;
+        min-width: 0;
+        padding: 12px 16px;
+    }
+}
+
+@media (max-width: 480px) {
+    .database-container {
+        margin: 1.1rem 0.6rem 2.25rem 0.6rem;
+        padding: 0.95rem;
+    }
+
+    .database-container h2 {
+        font-size: 1.35em;
+    }
+}

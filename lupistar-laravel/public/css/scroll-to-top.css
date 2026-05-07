@@ -66,12 +66,18 @@
     animation: pulse 2s infinite;
 }
 
+/* ============================================================================ */
+/*                                   MOBILE                                     */
+/*              Ne pas modifier la section "ordi" au-dessus                       */
+/* ============================================================================ */
+
 @media (max-width: 768px) {
     .scroll-to-top {
-        width: 45px;
-        height: 45px;
-        top: 15px;
-        right: 15px;
+        width: 46px;
+        height: 46px;
+        top: auto;
+        bottom: 16px;
+        right: 16px;
     }
 
     .scroll-to-top .arrow {
@@ -83,16 +89,15 @@
 
 @media (max-width: 480px) {
     .scroll-to-top {
-        width: 40px;
-        height: 40px;
-        top: 10px;
-        right: 10px;
+        width: 42px;
+        height: 42px;
+        bottom: 12px;
+        right: 12px;
     }
 
     .scroll-to-top .arrow {
         border-left-width: 5px;
         border-right-width: 5px;
-        border-bottom-width: 8px;
+        border-bottom-width: 9px;
     }
 }
-

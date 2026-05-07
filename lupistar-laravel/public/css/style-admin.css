@@ -163,34 +163,7 @@
     }
 }
 
-/* Responsive pour mobile */
-@media (max-width: 768px) {
-    .promotion-container {
-        flex-direction: column;
-        gap: 8px;
-        padding: 10px;
-        min-height: auto;
-    }
-    
-    .promotion-titles {
-        order: 1;
-    }
-    
-    .promotion-btn-left {
-        order: 3;
-    }
-    
-    .promotion-btn-right {
-        order: 2;
-    }
-    
-    .promotion-btn-left,
-    .promotion-btn-right {
-        width: 40px;
-        height: 40px;
-        font-size: 1.3em;
-    }
-}
+ 
 .japan-notification {
     margin-top: 8px;
     padding: 10px 12px;
@@ -226,13 +199,7 @@
     }
 }
 
-/* Responsive pour la notification */
-@media (max-width: 768px) {
-    .japan-notification {
-        font-size: 0.85em;
-        padding: 8px 10px;
-    }
-}
+ 
 
 /* Tableau des films */
 .films-table-wrapper {
@@ -574,32 +541,7 @@ form input[type="submit"]:hover {
     display: none !important;
 }
 
-/* Responsive design */
-@media (max-width: 768px) {
-    form {
-        margin: 0 1rem 2rem 1rem;
-        padding: 1.5rem;
-    }
-    
-    .form-section.two-columns,
-    .form-section.three-columns {
-        grid-template-columns: 1fr;
-    }
-    
-    .form-group.inline {
-        grid-template-columns: 1fr;
-    }
-    
-    .form-group.inline label {
-        margin-bottom: 0.25rem;
-    }
-    
-    h1 {
-        margin: 2rem 1rem 1rem 1rem;
-        padding: 1rem;
-        font-size: 1.5em;
-    }
-}
+ 
 
 
 
@@ -2051,45 +1993,7 @@ form input[type="submit"]:hover {
     font-size: 0.9em;
 }
 
-/* Responsive design pour le tableau étendu */
-@media only screen and (max-width: 1200px) {
-    .membres-table {
-        font-size: 0.8em;
-    }
-    
-    .membres-table th,
-    .membres-table td {
-        padding: 0.5rem;
-    }
-    
-    .actions-cell {
-        min-width: 150px;
-    }
-    
-    .action-dropdown .dropbtn {
-        font-size: 0.75em;
-        padding: 0.3rem 0.6rem;
-    }
-}
-
-@media only screen and (max-width: 768px) {
-    .membres-table {
-        display: block;
-        overflow-x: auto;
-        white-space: nowrap;
-    }
-    
-    .actions-cell {
-        flex-direction: row;
-        flex-wrap: wrap;
-        gap: 0.3rem;
-    }
-    
-    .action-dropdown {
-        flex: 1;
-        min-width: 120px;
-    }
-}
+ 
 
 /* ===== SIDEBAR SOMMAIRE AVEC ICÔNES FLOTTANTES ===== */
 .admin-summary-sidebar {
@@ -2403,28 +2307,7 @@ form input[type="submit"]:hover {
     transform: translateY(-2px);
 }
 
-/* Responsive pour la section notifications */
-@media (max-width: 768px) {
-    #send-notification-section {
-        padding: 20px;
-        margin-top: 30px;
-    }
-    
-    #send-notification-section h2 {
-        font-size: 1.5em;
-    }
-    
-    #send-notification-section .form-section:last-of-type {
-        flex-direction: column;
-        align-items: center;
-    }
-    
-    #send-notification-section .btn-add,
-    #send-notification-section .btn-cancel {
-        width: 100%;
-        max-width: 250px;
-    }
-}
+ 
 
 /* Styles pour la section Communication (Super-Admin) */
 #super-admin-communication-section {
@@ -2611,7 +2494,158 @@ form input[type="submit"]:hover {
     color: #f39c12;
 }
 
+/* ============================================================================ */
+/*                                  TABLET                                      */
+/* ============================================================================ */
+
+@media only screen and (max-width: 1200px) {
+    .membres-table {
+        font-size: 0.82em;
+    }
+
+    .membres-table th,
+    .membres-table td {
+        padding: 0.5rem;
+    }
+
+    .actions-cell {
+        min-width: 150px;
+    }
+
+    .action-dropdown .dropbtn {
+        font-size: 0.78em;
+        padding: 0.35rem 0.65rem;
+    }
+}
+
+/* ============================================================================ */
+/*                                   MOBILE                                     */
+/*              Ne pas modifier la section "ordi" au-dessus                       */
+/* ============================================================================ */
+
 @media (max-width: 768px) {
+    .admin-section > h2 {
+        margin: 1.25rem 0.75rem 1rem 0.75rem;
+        padding: 1.1rem;
+    }
+
+    .promotion-container {
+        flex-direction: column;
+        gap: 8px;
+        padding: 10px;
+        min-height: auto;
+    }
+
+    .promotion-titles {
+        order: 1;
+    }
+
+    .promotion-btn-left {
+        order: 3;
+    }
+
+    .promotion-btn-right {
+        order: 2;
+    }
+
+    .promotion-btn-left,
+    .promotion-btn-right {
+        width: 44px;
+        height: 44px;
+        font-size: 1.3em;
+    }
+
+    .japan-notification {
+        font-size: 0.88em;
+        padding: 9px 10px;
+        border-radius: 10px;
+    }
+
+    .films-table-wrapper {
+        margin: 1.1rem 0.75rem 1.25rem 0.75rem;
+        height: auto;
+        max-height: 72vh;
+        overflow: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .films-table-wrapper .admin-films-table {
+        min-width: 760px;
+    }
+
+    form {
+        margin: 0 0.75rem 2rem 0.75rem;
+        padding: 1.1rem;
+        border-radius: 14px;
+    }
+
+    .form-section.two-columns,
+    .form-section.three-columns {
+        grid-template-columns: 1fr;
+    }
+
+    .form-group.inline {
+        grid-template-columns: 1fr;
+    }
+
+    .form-group.inline label {
+        margin-bottom: 0.25rem;
+    }
+
+    h1 {
+        margin: 1.25rem 0.75rem 0.75rem 0.75rem;
+        padding: 0.85rem;
+        font-size: 1.5em;
+    }
+
+    .membre-container {
+        margin: 1.25rem 0.75rem 2.5rem 0.75rem;
+        padding: 0.75rem;
+    }
+
+    .search-container-membres input {
+        height: 44px;
+        font-size: 1rem;
+    }
+
+    .membres-table {
+        display: block;
+        overflow-x: auto;
+        white-space: nowrap;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .actions-cell {
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 0.35rem;
+    }
+
+    .action-dropdown {
+        flex: 1;
+        min-width: 120px;
+    }
+
+    #send-notification-section {
+        padding: 20px;
+        margin-top: 30px;
+    }
+
+    #send-notification-section h2 {
+        font-size: 1.5em;
+    }
+
+    #send-notification-section .form-section:last-of-type {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    #send-notification-section .btn-add,
+    #send-notification-section .btn-cancel {
+        width: 100%;
+        max-width: 280px;
+    }
+
     #super-admin-communication-section {
         padding: 20px;
         margin-top: 30px;
@@ -2629,46 +2663,66 @@ form input[type="submit"]:hover {
     #super-admin-communication-section .btn-add,
     #super-admin-communication-section .btn-cancel {
         width: 100%;
-        max-width: 250px;
+        max-width: 280px;
     }
-}
 
-/* Responsive pour la sidebar */
-@media (max-width: 768px) {
     .admin-summary-sidebar {
-        left: 10px;
-        width: 50px;
+        left: auto;
+        right: 12px;
+        top: auto;
+        bottom: 12px;
+        transform: none;
+        width: 54px;
     }
-    
+
     .admin-summary-sidebar.expanded {
-        width: 250px;
+        width: min(320px, calc(100vw - 24px));
     }
-    
+
     .summary-toggle {
         padding: 12px;
     }
-    
+
     .summary-item {
         padding: 12px;
     }
-    
+
     .floating-icon {
-        width: 35px;
-        height: 35px;
+        width: 36px;
+        height: 36px;
     }
-    
+
     .floating-icon .icon {
         font-size: 1em;
     }
 }
 
 @media (max-width: 480px) {
-    .admin-summary-sidebar {
-        left: 5px;
-        width: 45px;
+    .admin-section > h2 {
+        margin: 1.1rem 0.6rem 0.85rem 0.6rem;
+        padding: 0.95rem;
     }
-    
+
+    .films-table-wrapper {
+        margin: 1rem 0.6rem 1.1rem 0.6rem;
+    }
+
+    form {
+        margin: 0 0.6rem 2rem 0.6rem;
+        padding: 0.95rem;
+    }
+
+    .membre-container {
+        margin: 1.1rem 0.6rem 2.25rem 0.6rem;
+    }
+
+    .admin-summary-sidebar {
+        right: 10px;
+        bottom: 10px;
+        width: 48px;
+    }
+
     .admin-summary-sidebar.expanded {
-        width: 220px;
+        width: min(300px, calc(100vw - 20px));
     }
 }

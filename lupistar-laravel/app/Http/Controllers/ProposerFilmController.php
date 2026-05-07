@@ -70,7 +70,6 @@ class ProposerFilmController extends Controller
             })
             ->where('s.categorie', 'like', '%'.$categorie.'%')
             ->groupBy('s.id', 's.nom')
-            ->orderByDesc(DB::raw('COUNT(f.id)'))
             ->orderBy('s.nom')
             ->get(['s.id', 's.nom']);
 
@@ -92,7 +91,6 @@ class ProposerFilmController extends Controller
             })
             ->where('a.categorie', 'like', '%'.$categorie.'%')
             ->groupBy('a.id', 'a.nom')
-            ->orderByDesc(DB::raw('COUNT(f.id)'))
             ->orderBy('a.nom')
             ->get(['a.id', 'a.nom']);
 

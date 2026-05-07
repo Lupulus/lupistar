@@ -123,7 +123,7 @@ body {
     padding: 0.5rem;
     padding-bottom: 0px;
     /* max-width: 1600px; */
-    margin: 3rem 3rem 0 3rem;
+    margin: 1.5rem 3rem 0 3rem;
     /* width: 100%; */
     overflow: hidden;
 }
@@ -168,6 +168,7 @@ body {
 .tabcontent {
     visibility: visible;
     padding: 1.5rem;
+    padding-top: 0.5rem;
     margin: -2px calc(3.5rem - 2px) 0 calc(3.5rem - 2px);
     margin-bottom: clamp(0rem, 100vh - 10% - 3.5rem, 3.5rem);
 
@@ -437,8 +438,10 @@ body {
 .filter-container {
     display: flex;
     flex-direction: column;
-    padding: 2rem;
-    gap: 1.5rem;
+    padding: 1.5rem;
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+    gap: 0.5rem;
 }
 
 /* Section supérieure avec barre de recherche à gauche et statistiques à droite */
@@ -490,7 +493,7 @@ body {
 
 .stats-grid {
     display: grid;
-    grid-template-columns: 20% 60% 15%;
+    grid-template-columns: 18% 60% 17%;
     gap: 1.5rem;
     align-items: center;
     justify-content: center;
@@ -787,32 +790,248 @@ body {
     justify-content: center;
     z-index: 1002;
 }
-/* Media query pour les résolutions plus petites */
+/* ============================================================================ */
+/*                                   MOBILE                                     */
+/*              Ne pas modifier la section "ordi" au-dessus                       */
+/* ============================================================================ */
+
 @media only screen and (max-width: 768px) {
-    .menu {
-        width: 100%; /* Ajustement de la largeur pour les petits écrans */
-        margin-right: 0; /* Suppression de la marge */
+    .tab {
+        margin: 1.1rem 0.75rem 0 0.75rem;
+        padding: 0.5rem 0.5rem 0 0.5rem;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
     }
 
-    .menu .btn {
-        margin-right: 2%; /* Ajustement de la marge des boutons pour les petits écrans */
+    .tab button {
+        float: none;
+        margin: 0;
+        padding: 0.65rem 0.95rem;
+        font-size: 0.95rem;
+        border-radius: 10px 10px 0 0;
     }
 
-    .film-container-tab {
-        width: calc(100% - 2rem);
-        margin: 0 1rem;
+    .tab button:hover {
+        transform: none;
+        padding-bottom: 0.65rem;
+    }
+
+    .search-bar-container,
+    .results-feedback,
+    .tabcontent {
+        margin: -2px 0.75rem 0 0.75rem;
+        width: auto;
+    }
+
+    .filter-container {
         padding: 1rem;
+        gap: 0.9rem;
     }
 
-    .search-bar-container {
-        padding: 1rem;
-        width: calc(100% - 2rem);
-        margin: 0 auto;
+    .top-section {
+        flex-direction: column;
+        gap: 0.9rem;
+    }
+
+    .search-section-left {
+        width: 100%;
+    }
+
+    .search-section-left input {
+        width: 100%;
+        height: 44px;
+        font-size: 1rem;
+    }
+
+    .statistics-section {
+        width: 100%;
+    }
+
+    .stats-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 0.75rem;
+    }
+
+    .action-buttons-container {
+        width: 100%;
+        justify-content: stretch;
+        gap: 0.75rem;
+    }
+
+    .action-buttons-container .search-btn,
+    .action-buttons-container .reset-btn {
+        flex: 1;
+        padding: 12px 14px;
     }
 
     .tabcontent {
-        padding: 1rem 0;
-        width: calc(100% - 2rem);
-        margin: -2px auto 3rem auto;
+        padding: 1rem;
+        border-radius: 0 0 12px 12px;
+    }
+
+    .film-container-tab {
+        width: calc(100% - 1.5rem);
+        padding: 1rem;
+        gap: 0.85rem;
+    }
+
+    .film-box {
+        height: auto;
+        grid-template-columns: 4rem 1fr 3.2rem;
+        grid-template-areas:
+            "image details wolf"
+            "rating rating rating";
+        gap: 0.75rem;
+        padding: 0.55rem;
+        align-items: start;
+    }
+
+    .film-box .film-image {
+        width: 4rem;
+        height: 6rem;
+    }
+
+    .film-details .nom {
+        font-size: 1.1rem;
+        margin-bottom: 0.25rem;
+    }
+
+    .film-details .nom .serie-info {
+        font-size: 0.95rem;
+        margin-left: 0.4rem;
+        display: inline-block;
+    }
+
+    .film-details-grid {
+        grid-template-columns: 1fr;
+        gap: 0.5rem;
+    }
+
+    .film-metadata {
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 0.35rem 0.85rem;
+    }
+
+    .film-metadata .studio,
+    .film-metadata .date,
+    .film-metadata .episodes {
+        font-size: 0.85rem;
+    }
+
+    .film-box .description {
+        font-size: 0.9rem;
+        line-height: 1.35;
+        -webkit-line-clamp: 2;
+        margin-right: 0;
+    }
+
+    .film-rating {
+        justify-self: start;
+    }
+
+    .film-box .note {
+        flex-direction: row;
+        justify-content: flex-start;
+        gap: 0.5rem;
+        margin-bottom: 0;
+    }
+
+    .film-box .note-stars {
+        width: auto;
+        height: auto;
+        padding: 8px 12px;
+        margin: 0;
+        border-radius: 999px;
+    }
+
+    .film-box .note-stars .star {
+        display: none;
+    }
+
+    .film-box .note-value {
+        position: static;
+        font-size: 1.05rem;
+    }
+
+    .wolf-view {
+        width: 3.2rem;
+        height: 3.2rem;
+        justify-self: end;
+        align-self: start;
+    }
+
+    .pagination {
+        margin-top: 1.25rem;
+    }
+
+    .pagination a,
+    .pagination .pagination-control.disabled {
+        padding: 10px 14px;
+        margin: 0 0.25rem 0.5rem 0.25rem;
+    }
+
+    .pagination .pagination-go {
+        width: 100%;
+        justify-content: center;
+        margin: 0.25rem 0 0 0;
+    }
+}
+
+@media only screen and (max-width: 480px) {
+    .tab {
+        margin: 1rem 0.6rem 0 0.6rem;
+        padding: 0.5rem 0.4rem 0 0.4rem;
+        gap: 0.4rem;
+    }
+
+    .tab button {
+        font-size: 0.9rem;
+        padding: 0.6rem 0.8rem;
+    }
+
+    .search-bar-container,
+    .results-feedback,
+    .tabcontent {
+        margin: -2px 0.6rem 0 0.6rem;
+    }
+
+    .filter-container {
+        padding: 0.85rem;
+        padding-top: 0.2rem;
+    }
+
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .film-container-tab {
+        width: calc(100% - 1.2rem);
+        padding: 0.85rem;
+    }
+
+    .film-box {
+        grid-template-columns: 3.6rem 1fr 2.9rem;
+        padding: 0.5rem;
+        gap: 0.65rem;
+    }
+
+    .film-box .film-image {
+        width: 3.6rem;
+        height: 5.4rem;
+    }
+
+    .film-details .nom {
+        font-size: 1.02rem;
+    }
+
+    .film-box .description {
+        font-size: 0.88rem;
+    }
+
+    .wolf-view {
+        width: 2.9rem;
+        height: 2.9rem;
     }
 }

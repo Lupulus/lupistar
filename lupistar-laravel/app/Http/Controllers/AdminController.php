@@ -108,7 +108,7 @@ class AdminController extends Controller
                 'p.nom as pays_nom'
             )
             ->where('ft.statut', 'en_attente')
-            ->orderBy('ft.date_proposition', 'desc')
+            ->orderBy('ft.date_proposition', 'asc')
             ->get();
 
         return view('Administration.propositions', [
@@ -130,7 +130,7 @@ class AdminController extends Controller
             ->leftJoin('pays as p', 'ft.pays_id', '=', 'p.id')
             ->leftJoin('membres as m', 'ft.propose_par', '=', 'm.id')
             ->where('ft.statut', 'en_attente')
-            ->orderByDesc('ft.date_proposition')
+            ->orderBy('ft.date_proposition')
             ->get([
                 'ft.*',
                 's.nom as studio_nom',
