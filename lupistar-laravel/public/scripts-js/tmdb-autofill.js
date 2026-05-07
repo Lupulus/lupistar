@@ -219,6 +219,16 @@
     'RU': ['russie'],
     'BR': ['bresil'],
     'MX': ['mexique'],
+    'ZA': ['afrique du sud','afrique-du-sud','south africa'],
+    'DK': ['danemark','denmark'],
+    'IE': ['irlande','ireland'],
+    'NO': ['norvege','norway'],
+    'FI': ['finlande','finland'],
+    'CH': ['suisse','switzerland'],
+    'AT': ['autriche','austria'],
+    'HK': ['hong kong','hong-kong'],
+    'ID': ['indonesie','indonesia'],
+    'CZ': ['republique tcheque','tchequie','czech republic','czechia'],
   };
 
   const NAME_TO_LOCAL = {
@@ -238,6 +248,17 @@
     'russia': ISO_TO_LOCAL['RU'],
     'brazil': ISO_TO_LOCAL['BR'],
     'mexico': ISO_TO_LOCAL['MX'],
+    'south africa': ISO_TO_LOCAL['ZA'],
+    'denmark': ISO_TO_LOCAL['DK'],
+    'ireland': ISO_TO_LOCAL['IE'],
+    'norway': ISO_TO_LOCAL['NO'],
+    'finland': ISO_TO_LOCAL['FI'],
+    'switzerland': ISO_TO_LOCAL['CH'],
+    'austria': ISO_TO_LOCAL['AT'],
+    'hong kong': ISO_TO_LOCAL['HK'],
+    'indonesia': ISO_TO_LOCAL['ID'],
+    'czech republic': ISO_TO_LOCAL['CZ'],
+    'czechia': ISO_TO_LOCAL['CZ'],
   };
 
   function selectCountry(paysSelect, countries, countriesIso) {
@@ -245,12 +266,17 @@
     const options = Array.from(paysSelect.options);
     const optionTexts = options.map(o => ({ opt: o, text: normalize(o.textContent || '') }));
 
-    const tryMatchTexts = (texts) => {
+    const tryMatchTexts = (texts, matchedIso) => {
       for (const t of texts || []) {
         const nt = normalize(t);
         const found = optionTexts.find(x => x.text.includes(nt) || x.text === nt);
         if (found) {
           paysSelect.value = found.opt.value;
+          if (paysSelect.dataset) {
+            paysSelect.dataset.tmdbAutofill = '1';
+            paysSelect.dataset.tmdbAutofillCountryIso = String(matchedIso || '').toUpperCase();
+          }
+          window.__tmdbAutofillUsed = true;
           return true;
         }
       }
@@ -259,16 +285,17 @@
 
     if (Array.isArray(countriesIso) && countriesIso.length > 0) {
       for (const iso of countriesIso) {
-        const list = ISO_TO_LOCAL[String(iso).toUpperCase()];
-        if (list && tryMatchTexts(list)) return true;
+        const isoUp = String(iso).toUpperCase();
+        const list = ISO_TO_LOCAL[isoUp];
+        if (list && tryMatchTexts(list, isoUp)) return true;
       }
     }
 
     if (Array.isArray(countries) && countries.length > 0) {
       for (const name of countries) {
         const synonyms = NAME_TO_LOCAL[normalize(name)];
-        if (synonyms && tryMatchTexts(synonyms)) return true;
-        if (tryMatchTexts([name])) return true;
+        if (synonyms && tryMatchTexts(synonyms, '')) return true;
+        if (tryMatchTexts([name], '')) return true;
       }
     }
 
@@ -320,6 +347,7 @@
       return;
     }
     const d = out.data || {};
+    window.__tmdbAutofillUsed = true;
 
     if (d.title && document.getElementById('nom_film')) {
       document.getElementById('nom_film').value = d.title;
@@ -347,6 +375,10 @@
     }
 
     const pays = document.getElementById('pays');
+    if (pays?.dataset) {
+      delete pays.dataset.tmdbAutofill;
+      delete pays.dataset.tmdbAutofillCountryIso;
+    }
     const countries = Array.isArray(d.countries) ? d.countries : [];
     const countriesIso = Array.isArray(d.countries_iso) ? d.countries_iso : [];
     selectCountry(pays, countries, countriesIso);

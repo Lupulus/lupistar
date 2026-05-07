@@ -558,6 +558,23 @@ body {
     margin-bottom: 1.5rem;
 }
 
+.filters-grid.filters-grid--liste {
+    grid-template-columns: 18rem 9.5rem 9.5rem 15rem 18rem;
+    align-items: end;
+}
+
+@media screen and (max-width: 1200px) {
+    .filters-grid.filters-grid--liste {
+        grid-template-columns: 1.55fr 0.9fr 0.9fr 1.15fr 1.55fr;
+    }
+}
+
+@media screen and (max-width: 992px) {
+    .filters-grid.filters-grid--liste {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
 /* Groupes de filtres */
 .filter-group {
     display: flex;

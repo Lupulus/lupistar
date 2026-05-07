@@ -81,9 +81,13 @@
                         <select id="note-filter" name="note">
                             <option value="">Toutes les notes</option>
                             <option value="sans_note" @selected(request('note') === 'sans_note')>Sans note</option>
-                            @for ($i = 1; $i <= 10; $i++)
-                                <option value="{{ $i }}" @selected((string) request('note') === (string) $i)>{{ $i }} et plus</option>
+                            @for ($i = 0; $i <= 9; $i++)
+                                @php $max = $i + 1; @endphp
+                                <option value="{{ $i }}-{{ $max }}" @selected(request('note') === ($i . '-' . $max))>
+                                    Entre {{ $i }} et {{ $max }}
+                                </option>
                             @endfor
+                            <option value="10" @selected((string) request('note') === '10')>SuperStar (10)</option>
                         </select>
                     </div>
 

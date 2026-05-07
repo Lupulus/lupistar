@@ -117,9 +117,190 @@ class ListeService
             ->toArray();
     }
 
-    public function paginatedFilmsForCategory(string $category, array $filters, int $page, int $perPage = 36): LengthAwarePaginator
+    public function studioCountsForCategory(string $category): array
     {
-        return $this->paginatedFilms($category, null, $filters, $page, $perPage, false);
+        return DB::table('films as f')
+            ->leftJoin('studios as s', 'f.studio_id', '=', 's.id')
+            ->where('f.categorie', $category)
+            ->whereNotNull('s.nom')
+            ->groupBy('s.nom')
+            ->orderBy('s.nom')
+            ->get([DB::raw('s.nom as label'), DB::raw('COUNT(*) as total')])
+            ->map(fn ($r) => ['label' => (string) $r->label, 'total' => (int) $r->total])
+            ->toArray();
+    }
+
+    public function yearCountsForCategory(string $category): array
+    {
+        return DB::table('films as f')
+            ->where('f.categorie', $category)
+            ->whereNotNull('f.date_sortie')
+            ->groupBy('f.date_sortie')
+            ->orderByDesc('f.date_sortie')
+            ->get([DB::raw('f.date_sortie as label'), DB::raw('COUNT(*) as total')])
+            ->map(fn ($r) => ['label' => (string) $r->label, 'total' => (int) $r->total])
+            ->toArray();
+    }
+
+    public function paysCountsForCategory(string $category): array
+    {
+        return DB::table('films as f')
+            ->leftJoin('pays as p', 'f.pays_id', '=', 'p.id')
+            ->where('f.categorie', $category)
+            ->whereNotNull('p.nom')
+            ->groupBy('p.nom')
+            ->orderBy('p.nom')
+            ->get([DB::raw('p.nom as label'), DB::raw('COUNT(*) as total')])
+            ->map(fn ($r) => ['label' => (string) $r->label, 'total' => (int) $r->total])
+            ->toArray();
+    }
+
+    public function studioCountsForUserCategory(int $userId, string $category): array
+    {
+        return DB::table('films as f')
+            ->join('membres_films_list as mfl', function ($join) use ($userId) {
+                $join->on('f.id', '=', 'mfl.films_id')->where('mfl.membres_id', '=', $userId);
+            })
+            ->leftJoin('studios as s', 'f.studio_id', '=', 's.id')
+            ->where('f.categorie', $category)
+            ->whereNotNull('s.nom')
+            ->groupBy('s.nom')
+            ->orderBy('s.nom')
+            ->get([DB::raw('s.nom as label'), DB::raw('COUNT(*) as total')])
+            ->map(fn ($r) => ['label' => (string) $r->label, 'total' => (int) $r->total])
+            ->toArray();
+    }
+
+    public function yearCountsForUserCategory(int $userId, string $category): array
+    {
+        return DB::table('films as f')
+            ->join('membres_films_list as mfl', function ($join) use ($userId) {
+                $join->on('f.id', '=', 'mfl.films_id')->where('mfl.membres_id', '=', $userId);
+            })
+            ->where('f.categorie', $category)
+            ->whereNotNull('f.date_sortie')
+            ->groupBy('f.date_sortie')
+            ->orderByDesc('f.date_sortie')
+            ->get([DB::raw('f.date_sortie as label'), DB::raw('COUNT(*) as total')])
+            ->map(fn ($r) => ['label' => (string) $r->label, 'total' => (int) $r->total])
+            ->toArray();
+    }
+
+    public function paysCountsForUserCategory(int $userId, string $category): array
+    {
+        return DB::table('films as f')
+            ->join('membres_films_list as mfl', function ($join) use ($userId) {
+                $join->on('f.id', '=', 'mfl.films_id')->where('mfl.membres_id', '=', $userId);
+            })
+            ->leftJoin('pays as p', 'f.pays_id', '=', 'p.id')
+            ->where('f.categorie', $category)
+            ->whereNotNull('p.nom')
+            ->groupBy('p.nom')
+            ->orderBy('p.nom')
+            ->get([DB::raw('p.nom as label'), DB::raw('COUNT(*) as total')])
+            ->map(fn ($r) => ['label' => (string) $r->label, 'total' => (int) $r->total])
+            ->toArray();
+    }
+
+    public function noteCountsForCategory(string $category): array
+    {
+        $avgNotesSub = DB::table('membres_films_list')
+            ->select([
+                'films_id',
+                DB::raw('AVG(note) as note_moyenne_raw'),
+            ])
+            ->whereNotNull('note')
+            ->groupBy('films_id');
+
+        $select = [
+            DB::raw('COUNT(*) as total'),
+            DB::raw('SUM(CASE WHEN avg_notes.note_moyenne_raw IS NULL THEN 1 ELSE 0 END) as sans_note'),
+            DB::raw('SUM(CASE WHEN avg_notes.note_moyenne_raw = 10 THEN 1 ELSE 0 END) as superstar'),
+        ];
+        for ($i = 1; $i <= 10; $i++) {
+            $select[] = DB::raw("SUM(CASE WHEN avg_notes.note_moyenne_raw >= {$i} THEN 1 ELSE 0 END) as lim_{$i}");
+        }
+        for ($i = 0; $i <= 9; $i++) {
+            $min = $i;
+            $max = $i + 1;
+            $col = "r_{$min}_{$max}";
+            $select[] = DB::raw("SUM(CASE WHEN avg_notes.note_moyenne_raw >= {$min} AND avg_notes.note_moyenne_raw < {$max} THEN 1 ELSE 0 END) as {$col}");
+        }
+
+        $row = DB::table('films as f')
+            ->leftJoinSub($avgNotesSub, 'avg_notes', function ($join) {
+                $join->on('f.id', '=', 'avg_notes.films_id');
+            })
+            ->where('f.categorie', $category)
+            ->first($select);
+
+        $out = [
+            'total' => (int) ($row->total ?? 0),
+            'sans_note' => (int) ($row->sans_note ?? 0),
+            'superstar' => (int) ($row->superstar ?? 0),
+            'limites' => [],
+            'ranges' => [],
+        ];
+        for ($i = 1; $i <= 10; $i++) {
+            $k = "lim_{$i}";
+            $out['limites'][(string) $i] = (int) ($row->{$k} ?? 0);
+        }
+        for ($i = 0; $i <= 9; $i++) {
+            $min = $i;
+            $max = $i + 1;
+            $k = "r_{$min}_{$max}";
+            $out['ranges']["{$min}-{$max}"] = (int) ($row->{$k} ?? 0);
+        }
+        return $out;
+    }
+
+    public function noteCountsForUserCategory(int $userId, string $category): array
+    {
+        $select = [
+            DB::raw('COUNT(*) as total'),
+            DB::raw('SUM(CASE WHEN mfl.note IS NULL THEN 1 ELSE 0 END) as sans_note'),
+            DB::raw('SUM(CASE WHEN mfl.note = 10 THEN 1 ELSE 0 END) as superstar'),
+        ];
+        for ($i = 1; $i <= 10; $i++) {
+            $select[] = DB::raw("SUM(CASE WHEN mfl.note >= {$i} THEN 1 ELSE 0 END) as lim_{$i}");
+        }
+        for ($i = 0; $i <= 9; $i++) {
+            $min = $i;
+            $max = $i + 1;
+            $col = "r_{$min}_{$max}";
+            $select[] = DB::raw("SUM(CASE WHEN mfl.note >= {$min} AND mfl.note < {$max} THEN 1 ELSE 0 END) as {$col}");
+        }
+
+        $row = DB::table('films as f')
+            ->join('membres_films_list as mfl', function ($join) use ($userId) {
+                $join->on('f.id', '=', 'mfl.films_id')->where('mfl.membres_id', '=', $userId);
+            })
+            ->where('f.categorie', $category)
+            ->first($select);
+
+        $out = [
+            'total' => (int) ($row->total ?? 0),
+            'sans_note' => (int) ($row->sans_note ?? 0),
+            'superstar' => (int) ($row->superstar ?? 0),
+            'limites' => [],
+            'ranges' => [],
+        ];
+        for ($i = 1; $i <= 10; $i++) {
+            $k = "lim_{$i}";
+            $out['limites'][(string) $i] = (int) ($row->{$k} ?? 0);
+        }
+        for ($i = 0; $i <= 9; $i++) {
+            $min = $i;
+            $max = $i + 1;
+            $k = "r_{$min}_{$max}";
+            $out['ranges']["{$min}-{$max}"] = (int) ($row->{$k} ?? 0);
+        }
+        return $out;
+    }
+
+    public function paginatedFilmsForCategory(string $category, array $filters, int $page, int $perPage = 36, ?int $userId = null): LengthAwarePaginator
+    {
+        return $this->paginatedFilms($category, $userId, $filters, $page, $perPage, false);
     }
 
     public function paginatedFilmsForUserCategory(int $userId, string $category, array $filters, int $page, int $perPage = 36): LengthAwarePaginator
@@ -195,11 +376,41 @@ class ListeService
             } else {
                 $query->whereNull('avg_notes.note_moyenne_raw');
             }
+        } elseif (preg_match('/^(\d+(?:\.\d+)?)-(\d+(?:\.\d+)?)$/', $note, $m)) {
+            $min = (float) $m[1];
+            $max = (float) $m[2];
+            if ($onlyMyList) {
+                $query->where('mfl.note', '>=', $min)->where('mfl.note', '<', $max);
+            } else {
+                $query->where('avg_notes.note_moyenne_raw', '>=', $min)->where('avg_notes.note_moyenne_raw', '<', $max);
+            }
         } elseif ($note !== '' && is_numeric($note)) {
             if ($onlyMyList) {
-                $query->where('mfl.note', '>=', (float) $note);
+                if ((float) $note === 10.0) {
+                    $query->where('mfl.note', '=', 10);
+                } else {
+                    $query->where('mfl.note', '>=', (float) $note);
+                }
             } else {
-                $query->where('avg_notes.note_moyenne_raw', '>=', (float) $note);
+                if ((float) $note === 10.0) {
+                    $query->where('avg_notes.note_moyenne_raw', '=', 10);
+                } else {
+                    $query->where('avg_notes.note_moyenne_raw', '>=', (float) $note);
+                }
+            }
+        }
+
+        $statut = trim((string) ($filters['statut'] ?? ''));
+        if (! $onlyMyList && $userId !== null && ($statut === 'in' || $statut === 'out')) {
+            $query->leftJoin('membres_films_list as mfl_user', function ($join) use ($userId) {
+                $join->on('films.id', '=', 'mfl_user.films_id')
+                    ->where('mfl_user.membres_id', '=', $userId);
+            });
+
+            if ($statut === 'in') {
+                $query->whereNotNull('mfl_user.films_id');
+            } else {
+                $query->whereNull('mfl_user.films_id');
             }
         }
 

@@ -3,6 +3,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const studioFilter = document.getElementById('studio-filter');
     const anneeFilter = document.getElementById('annee-filter');
     const noteFilter = document.getElementById('note-filter');
+    const statutFilter = document.getElementById('statut-filter');
     const paysFilter = document.getElementById('pays-filter');
     const typeFilter = document.getElementById('type-filter');
     const episodesFilter = document.getElementById('episodes-filter');
@@ -74,6 +75,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const note = (noteFilter.value || '').trim();
         if (note !== '') params.set('note', note);
 
+        if (statutFilter) {
+            const statut = (statutFilter.value || '').trim();
+            if (statut !== '') params.set('statut', statut);
+        }
+
         if (paysFilter) {
             const pays = (paysFilter.value || '').trim();
             if (pays !== '') params.set('pays', pays);
@@ -112,31 +118,149 @@ document.addEventListener('DOMContentLoaded', () => {
             const studios = Array.isArray(data.studios) ? data.studios : [];
             const years = Array.isArray(data.years) ? data.years : [];
             const pays = Array.isArray(data.pays) ? data.pays : [];
+            const studiosCounts = Array.isArray(data.studios_counts) ? data.studios_counts : null;
+            const yearsCounts = Array.isArray(data.years_counts) ? data.years_counts : null;
+            const paysCounts = Array.isArray(data.pays_counts) ? data.pays_counts : null;
+            const noteCounts = data.note_counts && typeof data.note_counts === 'object' ? data.note_counts : null;
+            const totalFilms = noteCounts && typeof noteCounts.total === 'number' ? noteCounts.total : null;
 
-            studioFilter.innerHTML = '<option value="">Tous les studios</option>';
-            studios.forEach((s) => {
-                const opt = document.createElement('option');
-                opt.value = s;
-                opt.textContent = s;
-                studioFilter.appendChild(opt);
-            });
+            {
+                const current = (studioFilter.value || '').trim();
+                const header = totalFilms !== null ? `Tous les studios (${totalFilms})` : 'Tous les studios';
+                studioFilter.innerHTML = `<option value="">${header}</option>`;
+                if (studiosCounts) {
+                    studiosCounts.forEach((row) => {
+                        const label = String(row?.label || '').trim();
+                        const count = Number(row?.total ?? 0) || 0;
+                        if (!label) return;
+                        const opt = document.createElement('option');
+                        opt.value = label;
+                        opt.textContent = `${label} (${count})`;
+                        studioFilter.appendChild(opt);
+                    });
+                } else {
+                    studios.forEach((s) => {
+                        const opt = document.createElement('option');
+                        opt.value = s;
+                        opt.textContent = s;
+                        studioFilter.appendChild(opt);
+                    });
+                }
+                if (current !== '') studioFilter.value = current;
+            }
 
-            anneeFilter.innerHTML = '<option value="">Toutes les années</option>';
-            years.forEach((y) => {
-                const opt = document.createElement('option');
-                opt.value = String(y);
-                opt.textContent = String(y);
-                anneeFilter.appendChild(opt);
-            });
+            {
+                const current = (anneeFilter.value || '').trim();
+                const header = totalFilms !== null ? `Toutes les années (${totalFilms})` : 'Toutes les années';
+                anneeFilter.innerHTML = `<option value="">${header}</option>`;
+                if (yearsCounts) {
+                    yearsCounts.forEach((row) => {
+                        const label = String(row?.label || '').trim();
+                        const count = Number(row?.total ?? 0) || 0;
+                        if (!label) return;
+                        const opt = document.createElement('option');
+                        opt.value = label;
+                        opt.textContent = `${label} (${count})`;
+                        anneeFilter.appendChild(opt);
+                    });
+                } else {
+                    years.forEach((y) => {
+                        const opt = document.createElement('option');
+                        opt.value = String(y);
+                        opt.textContent = String(y);
+                        anneeFilter.appendChild(opt);
+                    });
+                }
+                if (current !== '') anneeFilter.value = current;
+            }
 
             if (paysFilter) {
-                paysFilter.innerHTML = '<option value="">Tous les pays</option>';
-                pays.forEach((p) => {
-                    const opt = document.createElement('option');
-                    opt.value = p;
-                    opt.textContent = p;
-                    paysFilter.appendChild(opt);
-                });
+                const current = (paysFilter.value || '').trim();
+                const header = totalFilms !== null ? `Tous les pays (${totalFilms})` : 'Tous les pays';
+                paysFilter.innerHTML = `<option value="">${header}</option>`;
+                if (paysCounts) {
+                    paysCounts.forEach((row) => {
+                        const label = String(row?.label || '').trim();
+                        const count = Number(row?.total ?? 0) || 0;
+                        if (!label) return;
+                        const opt = document.createElement('option');
+                        opt.value = label;
+                        opt.textContent = `${label} (${count})`;
+                        paysFilter.appendChild(opt);
+                    });
+                } else {
+                    pays.forEach((p) => {
+                        const opt = document.createElement('option');
+                        opt.value = p;
+                        opt.textContent = p;
+                        paysFilter.appendChild(opt);
+                    });
+                }
+                if (current !== '') paysFilter.value = current;
+            }
+
+            if (noteFilter) {
+                const current = (noteFilter.value || '').trim();
+                const parts = [];
+
+                const allLabel = totalFilms !== null ? `Toutes les notes (${totalFilms})` : 'Toutes les notes';
+                parts.push(`<option value="">${allLabel}</option>`);
+
+                if (noteCounts) {
+                    const sans = Number(noteCounts.sans_note ?? 0) || 0;
+                    parts.push(`<option value="sans_note">Sans note (${sans})</option>`);
+
+                    for (let i = 0; i <= 9; i++) {
+                        const min = i;
+                        const max = i + 1;
+                        const key = `${min}-${max}`;
+                        const c = Number(noteCounts?.ranges?.[key] ?? 0) || 0;
+                        const label = `Entre ${min} et ${max}`;
+                        parts.push(`<option value="${key}">${label} (${c})</option>`);
+                    }
+
+                    const superstar = Number(noteCounts.superstar ?? 0) || 0;
+                    parts.push(`<option value="10">SuperStar (10) (${superstar})</option>`);
+                } else {
+                    parts.push('<option value="sans_note">Sans note</option>');
+                    for (let i = 0; i <= 9; i++) {
+                        const min = i;
+                        const max = i + 1;
+                        const key = `${min}-${max}`;
+                        const label = `Entre ${min} et ${max}`;
+                        parts.push(`<option value="${key}">${label}</option>`);
+                    }
+                    parts.push('<option value="10">SuperStar (10)</option>');
+                }
+
+                noteFilter.innerHTML = parts.join('');
+                if (current !== '') noteFilter.value = current;
+            }
+
+            if (statutFilter) {
+                const current = (statutFilter.value || '').trim();
+                const sc = data.statut_counts && typeof data.statut_counts === 'object' ? data.statut_counts : null;
+                const total = sc && typeof sc.total === 'number' ? sc.total : totalFilms;
+                const inCount = sc && typeof sc.in === 'number' ? sc.in : 0;
+                const outCount = sc && typeof sc.out === 'number' ? sc.out : 0;
+                const loggedIn = !!data.logged_in;
+
+                const header = typeof total === 'number' ? `Tous les films (${total})` : 'Tous les films';
+                statutFilter.innerHTML = `<option value="">${header}</option>`;
+
+                const optIn = document.createElement('option');
+                optIn.value = 'in';
+                optIn.textContent = loggedIn ? `Dans ma liste (${inCount})` : 'Dans ma liste';
+                optIn.disabled = !loggedIn;
+                statutFilter.appendChild(optIn);
+
+                const optOut = document.createElement('option');
+                optOut.value = 'out';
+                optOut.textContent = loggedIn ? `Hors ma liste (${outCount})` : 'Hors ma liste';
+                optOut.disabled = !loggedIn;
+                statutFilter.appendChild(optOut);
+
+                if (current !== '') statutFilter.value = current;
             }
         } catch {
         }
@@ -267,6 +391,7 @@ document.addEventListener('DOMContentLoaded', () => {
             studioFilter.value = '';
             anneeFilter.value = '';
             noteFilter.value = '';
+            if (statutFilter) statutFilter.value = '';
             if (paysFilter) paysFilter.value = '';
             if (typeFilter) typeFilter.value = '';
             if (episodesFilter) episodesFilter.value = '';
@@ -298,6 +423,7 @@ document.addEventListener('DOMContentLoaded', () => {
         studioFilter.value = '';
         anneeFilter.value = '';
         noteFilter.value = '';
+        if (statutFilter) statutFilter.value = '';
         if (paysFilter) paysFilter.value = '';
         if (typeFilter) typeFilter.value = '';
         if (episodesFilter) episodesFilter.value = '';
@@ -308,6 +434,7 @@ document.addEventListener('DOMContentLoaded', () => {
     studioFilter.addEventListener('change', scheduleRefresh);
     anneeFilter.addEventListener('change', scheduleRefresh);
     noteFilter.addEventListener('change', scheduleRefresh);
+    if (statutFilter) statutFilter.addEventListener('change', scheduleRefresh);
     if (paysFilter) paysFilter.addEventListener('change', scheduleRefresh);
     if (typeFilter) typeFilter.addEventListener('change', scheduleRefresh);
     if (episodesFilter) episodesFilter.addEventListener('change', scheduleRefresh);

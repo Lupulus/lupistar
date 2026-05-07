@@ -17,10 +17,28 @@ class ListeApiController extends Controller
 
     public function filters(Request $request): JsonResponse
     {
-        $categories = $this->accueilService->categoriesOrderForUser(
-            is_numeric($request->session()->get('user_id')) ? (int) $request->session()->get('user_id') : null
-        );
+        $userId = $request->session()->get('user_id');
+        $userId = is_numeric($userId) ? (int) $userId : null;
+
+        $categories = $this->accueilService->categoriesOrderForUser($userId);
         $category = (string) $request->query('categorie', $categories[0] ?? 'Animation');
+        $noteCounts = $this->listeService->noteCountsForCategory($category);
+
+        $statutCounts = null;
+        if ($userId) {
+            $in = (int) DB::table('films as f')
+                ->join('membres_films_list as mfl', function ($join) use ($userId) {
+                    $join->on('f.id', '=', 'mfl.films_id')->where('mfl.membres_id', '=', $userId);
+                })
+                ->where('f.categorie', $category)
+                ->count('f.id');
+            $total = (int) ($noteCounts['total'] ?? 0);
+            $statutCounts = [
+                'total' => $total,
+                'in' => $in,
+                'out' => max(0, $total - $in),
+            ];
+        }
 
         return response()->json([
             'success' => true,
@@ -28,6 +46,12 @@ class ListeApiController extends Controller
             'studios' => $this->listeService->studiosForCategory($category),
             'years' => $this->listeService->yearsForCategory($category),
             'pays' => $this->listeService->paysForCategory($category),
+            'studios_counts' => $this->listeService->studioCountsForCategory($category),
+            'years_counts' => $this->listeService->yearCountsForCategory($category),
+            'pays_counts' => $this->listeService->paysCountsForCategory($category),
+            'note_counts' => $noteCounts,
+            'logged_in' => (bool) $userId,
+            'statut_counts' => $statutCounts,
         ]);
     }
 
@@ -54,8 +78,8 @@ class ListeApiController extends Controller
         $category = (string) $request->query('categorie', $categories[0] ?? 'Animation');
         $page = is_numeric($request->query('page')) ? (int) $request->query('page') : 1;
 
-        $filters = $request->only(['recherche', 'studio', 'annee', 'note', 'pays', 'type', 'episodes']);
-        $paginator = $this->listeService->paginatedFilmsForCategory($category, $filters, $page, 25);
+        $filters = $request->only(['recherche', 'studio', 'annee', 'note', 'statut', 'pays', 'type', 'episodes']);
+        $paginator = $this->listeService->paginatedFilmsForCategory($category, $filters, $page, 25, $userId);
 
         $myFilmIds = [];
         if ($userId) {
@@ -100,6 +124,7 @@ class ListeApiController extends Controller
 
         $categories = $this->accueilService->categoriesOrderForUser($userId);
         $category = (string) $request->query('categorie', $categories[0] ?? 'Animation');
+        $noteCounts = $this->listeService->noteCountsForUserCategory($userId, $category);
 
         return response()->json([
             'success' => true,
@@ -107,6 +132,10 @@ class ListeApiController extends Controller
             'studios' => $this->listeService->studiosForUserCategory($userId, $category),
             'years' => $this->listeService->yearsForUserCategory($userId, $category),
             'pays' => $this->listeService->paysForUserCategory($userId, $category),
+            'studios_counts' => $this->listeService->studioCountsForUserCategory($userId, $category),
+            'years_counts' => $this->listeService->yearCountsForUserCategory($userId, $category),
+            'pays_counts' => $this->listeService->paysCountsForUserCategory($userId, $category),
+            'note_counts' => $noteCounts,
         ]);
     }
 

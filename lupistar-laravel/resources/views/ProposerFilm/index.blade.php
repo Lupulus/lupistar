@@ -259,6 +259,75 @@
                 } else {
                     document.getElementById("sous-genre-warning").style.display = "none";
                 }
+
+                if (e.defaultPrevented) return;
+
+                const paysSelect = document.getElementById('pays');
+                const categorieSelect = document.getElementById('categorie');
+                const iso = String(paysSelect?.dataset?.tmdbAutofillCountryIso || '').toUpperCase();
+                const isAutofilledJapan = paysSelect?.dataset?.tmdbAutofill === '1' && iso === 'JP';
+                const currentCategory = String(categorieSelect?.value || '').trim();
+                const needsAnimeWarning =
+                    currentCategory === 'Animation' ||
+                    currentCategory === "Série d'Animation";
+
+                if (!isAutofilledJapan || !needsAnimeWarning) return;
+                if (form.dataset.skipJapanAutofillPopup === '1') return;
+
+                e.preventDefault();
+                (async () => {
+                    if (!window.popupManager?.show || !categorieSelect) return;
+
+                    const message =
+                        'Le Japon a été sélectionné via le remplissage automatique.\n\n' +
+                        'Les films et séries d\'animation japonais appartiennent généralement à la catégorie "Anime".\n\n' +
+                        'Souhaites-tu changer la catégorie ?';
+
+                    const choice = await window.popupManager.show({
+                        type: 'alert',
+                        title: 'Suggestion de catégorie',
+                        message,
+                        confirmText: 'OK',
+                        showCancel: false,
+                        confirmClass: 'primary',
+                        render: ({ close }) => {
+                            const container = document.getElementById('custom-popup-buttons');
+                            if (!container) return;
+                            container.innerHTML = '';
+
+                            const btnChange = document.createElement('button');
+                            btnChange.className = 'custom-popup-btn primary';
+                            btnChange.textContent = 'Changer la catégorie';
+                            btnChange.onclick = () => close('change');
+
+                            const btnCancel = document.createElement('button');
+                            btnCancel.className = 'custom-popup-btn secondary';
+                            btnCancel.textContent = 'Annuler';
+                            btnCancel.onclick = () => close('cancel');
+
+                            const btnNoChange = document.createElement('button');
+                            btnNoChange.className = 'custom-popup-btn secondary';
+                            btnNoChange.textContent = 'Ne pas changer';
+                            btnNoChange.onclick = () => close('nochange');
+
+                            container.appendChild(btnChange);
+                            container.appendChild(btnCancel);
+                            container.appendChild(btnNoChange);
+                        },
+                    });
+
+                    if (choice === 'change') {
+                        categorieSelect.value = 'Anime';
+                        categorieSelect.dispatchEvent(new Event('change', { bubbles: true }));
+                        categorieSelect.focus();
+                        return;
+                    }
+
+                    if (choice === 'nochange') {
+                        form.dataset.skipJapanAutofillPopup = '1';
+                        form.submit();
+                    }
+                })();
             });
 
             handleCategoryChange();
@@ -266,6 +335,14 @@
             toggleAutreStudio();
             toggleAutreAuteur();
             handlePaysChange();
+            const paysSelect = document.getElementById('pays');
+            if (paysSelect) {
+                paysSelect.addEventListener('change', () => {
+                    if (!paysSelect.dataset) return;
+                    delete paysSelect.dataset.tmdbAutofill;
+                    delete paysSelect.dataset.tmdbAutofillCountryIso;
+                });
+            }
             updateStudios();
             updateAuteurs();
             @if(session('status'))

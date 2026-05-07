@@ -31,8 +31,8 @@ class ListeController extends Controller
         $pays = $this->listeService->paysForCategory($category);
 
         $page = is_numeric($request->query('page')) ? (int) $request->query('page') : 1;
-        $filters = $request->only(['recherche', 'studio', 'annee', 'note', 'pays', 'type', 'episodes']);
-        $paginator = $this->listeService->paginatedFilmsForCategory($category, $filters, $page, 25);
+        $filters = $request->only(['recherche', 'studio', 'annee', 'note', 'statut', 'pays', 'type', 'episodes']);
+        $paginator = $this->listeService->paginatedFilmsForCategory($category, $filters, $page, 25, $userId);
 
         $myFilmIds = [];
         if ($userId) {
