@@ -27,11 +27,11 @@ class SousGenresTableSeeder extends Seeder
             ],
             2 => [
                 'id' => 13,
-                'nom' => 'Animation fantastique',
+                'nom' => 'Science-fiction & Fantastique',
             ],
             3 => [
                 'id' => 12,
-                'nom' => 'Animation musicale',
+                'nom' => 'Musique',
             ],
             4 => [
                 'id' => 2,
@@ -120,6 +120,42 @@ class SousGenresTableSeeder extends Seeder
             25 => [
                 'id' => 26,
                 'nom' => 'Western',
+            ],
+            26 => [
+                'id' => 27,
+                'nom' => 'Téléfilm',
+            ],
+            27 => [
+                'id' => 28,
+                'nom' => 'Jeunesse',
+            ],
+            28 => [
+                'id' => 29,
+                'nom' => 'Actualités',
+            ],
+            29 => [
+                'id' => 30,
+                'nom' => 'Télé-réalité',
+            ],
+            30 => [
+                'id' => 31,
+                'nom' => 'Soap',
+            ],
+            31 => [
+                'id' => 32,
+                'nom' => 'Talk-show',
+            ],
+            32 => [
+                'id' => 33,
+                'nom' => 'Guerre & Politique',
+            ],
+            33 => [
+                'id' => 34,
+                'nom' => 'Post-apocalyptique',
+            ],
+            34 => [
+                'id' => 35,
+                'nom' => 'Noël',
             ],
         ]);
 

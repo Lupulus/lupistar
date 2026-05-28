@@ -292,6 +292,17 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
+    const scrollToFilmsTop = () => {
+        const anchor = document.getElementById('tabcontent') || filmsContainer;
+        if (!anchor) return;
+
+        const header = document.querySelector('header');
+        const headerOffset = header ? Math.ceil(header.getBoundingClientRect().height) : 0;
+        const rect = anchor.getBoundingClientRect();
+        const top = window.scrollY + rect.top - headerOffset - 12;
+        window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+    };
+
     const refreshFilms = async (page) => {
         const params = buildQuery(page);
         const category = getCategory();
@@ -327,12 +338,14 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             updateUrl(currentPage);
+            return true;
         } catch {
+            return false;
         }
     };
 
     const attachPaginationEvents = () => {
-        paginationContainer.addEventListener('click', (event) => {
+        paginationContainer.addEventListener('click', async (event) => {
             const link = event.target.closest('a[data-page]');
             if (link) {
                 event.preventDefault();
@@ -340,7 +353,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 const page = link.getAttribute('data-page');
                 if (!page || isNaN(page)) return;
 
-                refreshFilms(parseInt(page, 10));
+                const ok = await refreshFilms(parseInt(page, 10));
+                if (ok) scrollToFilmsTop();
                 return;
             }
 
@@ -356,10 +370,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const last = paginationRoot?.getAttribute('data-last-page');
             const lastPage = last && !isNaN(last) ? parseInt(last, 10) : null;
             const clamped = lastPage ? Math.max(1, Math.min(wanted, lastPage)) : Math.max(1, wanted);
-            refreshFilms(clamped);
+            const ok = await refreshFilms(clamped);
+            if (ok) scrollToFilmsTop();
         });
 
-        paginationContainer.addEventListener('keydown', (event) => {
+        paginationContainer.addEventListener('keydown', async (event) => {
             const input = event.target.closest('input.pagination-go-input');
             if (!input) return;
             if (event.key !== 'Enter') return;
@@ -372,7 +387,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const last = paginationRoot?.getAttribute('data-last-page');
             const lastPage = last && !isNaN(last) ? parseInt(last, 10) : null;
             const clamped = lastPage ? Math.max(1, Math.min(wanted, lastPage)) : Math.max(1, wanted);
-            refreshFilms(clamped);
+            const ok = await refreshFilms(clamped);
+            if (ok) scrollToFilmsTop();
         });
     };
 

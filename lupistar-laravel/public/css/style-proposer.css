@@ -461,7 +461,7 @@ form input[type="submit"]:hover {
     transition: color 0.2s ease;
 }
 
-.checkbox-label:hover {
+.checkbox-label:not(.sg-tmdb):not(.sg-manual):not(.sg-anime):hover {
     color: var(--accent-orange);
 }
 
@@ -470,6 +470,42 @@ form input[type="submit"]:hover {
     margin: 0;
     accent-color: var(--accent-orange);
 }
+
+.sg-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem 1rem;
+    align-items: center;
+    margin: 0.35rem 0 0.5rem 0;
+    font-size: 0.85rem;
+    color: var(--text-medium-gray);
+}
+
+.sg-legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-weight: 700;
+}
+
+.checkbox-label.sg-tmdb,
+.sg-legend-item.sg-tmdb {
+    color: #f1c40f;
+}
+
+.checkbox-label.sg-manual,
+.sg-legend-item.sg-manual {
+    color: #2ecc71;
+}
+
+.checkbox-label.sg-anime,
+.sg-legend-item.sg-anime {
+    color: #9b59b6;
+}
+
+.checkbox-label.sg-tmdb:hover { color: #ffd34d; }
+.checkbox-label.sg-manual:hover { color: #55ef9a; }
+.checkbox-label.sg-anime:hover { color: #b884d7; }
 
 /* Message d'avertissement */
 #sous-genre-warning {

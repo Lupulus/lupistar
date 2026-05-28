@@ -1,4 +1,4 @@
-@extends('layouts.site')
+@extends('layouts.site', ['title' => 'Erreur 500'])
 @section('styles')
     <link rel="stylesheet" href="{{ asset('css/style-erreur.css') }}">
 @endsection

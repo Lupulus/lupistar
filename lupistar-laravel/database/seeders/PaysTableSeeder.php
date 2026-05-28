@@ -157,6 +157,30 @@ class PaysTableSeeder extends Seeder
                 'id' => 35,
                 'nom' => 'Suisse 🇨🇭',
             ],
+            35 => [
+                'id' => 36,
+                'nom' => 'Islande 🇮🇸',
+            ],
+            36 => [
+                'id' => 37,
+                'nom' => 'Grèce 🇬🇷',
+            ],
+            37 => [
+                'id' => 38,
+                'nom' => 'Hongrie 🇭🇺',
+            ],
+            38 => [
+                'id' => 39,
+                'nom' => 'Israël 🇮🇱',
+            ],
+            39 => [
+                'id' => 40,
+                'nom' => 'Roumanie 🇷🇴',
+            ],
+            40 => [
+                'id' => 41,
+                'nom' => 'Ukraine 🇺🇦',
+            ],
         ]);
 
     }

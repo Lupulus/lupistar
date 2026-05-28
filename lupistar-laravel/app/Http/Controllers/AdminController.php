@@ -308,7 +308,44 @@ class AdminController extends Controller
                 ->values()
                 ->all();
             $ignore = ['Animation', 'Film', 'Série', "Série d'Animation", 'Anime'];
-            $final = array_values(array_filter($names, fn ($n) => ! in_array($n, $ignore, true)));
+            $final = collect($names)
+                ->filter(fn ($n) => ! in_array($n, $ignore, true))
+                ->map(function (string $n) {
+                    $raw = trim($n);
+                    if ($raw === '') return null;
+
+                    $key = mb_strtolower($raw);
+                    $map = [
+                        'crime' => 'Policier',
+                        'music' => 'Musique',
+                        'musique' => 'Musique',
+                        'tv movie' => 'Téléfilm',
+                        'téléfilm' => 'Téléfilm',
+                        'kids' => 'Jeunesse',
+                        'news' => 'Actualités',
+                        'actualités' => 'Actualités',
+                        'reality' => 'Télé-réalité',
+                        'télé-réalité' => 'Télé-réalité',
+                        'soap' => 'Soap',
+                        'talk' => 'Talk-show',
+                        'talk-show' => 'Talk-show',
+                        'war & politics' => 'Guerre & Politique',
+                        'guerre & politique' => 'Guerre & Politique',
+                        'sci-fi & fantasy' => 'Science-fiction & Fantastique',
+                        'sci-fi and fantasy' => 'Science-fiction & Fantastique',
+                        'science-fiction & fantastique' => 'Science-fiction & Fantastique',
+                        'science fiction & fantastique' => 'Science-fiction & Fantastique',
+                    ];
+
+                    if (isset($map[$key])) return $map[$key];
+                    if ($key === 'action & adventure' || $key === 'action and adventure') return null;
+
+                    return $raw;
+                })
+                ->filter()
+                ->unique()
+                ->values()
+                ->all();
             $existing = DB::table('sous_genres')->pluck('nom')->map(fn ($n) => (string) $n)->all();
             $toInsert = array_values(array_diff($final, $existing));
             foreach ($toInsert as $nom) {

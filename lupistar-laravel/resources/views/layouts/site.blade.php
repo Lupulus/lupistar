@@ -4,7 +4,32 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>{{ $title ?? 'Lupistar' }}</title>
+    @php
+        $rawTitle = isset($title) ? trim((string) $title) : '';
+        if ($rawTitle === '') {
+            $routeName = \Illuminate\Support\Facades\Route::currentRouteName();
+            $map = [
+                'accueil' => 'Accueil',
+                'liste' => 'Liste',
+                'ma-liste' => 'Ma Liste',
+                'forum' => 'Forum',
+                'forum.category' => 'Forum',
+                'forum.discussion' => 'Forum',
+                'proposer-film.show' => 'Proposer un film',
+                'mon-compte' => 'Mon compte',
+                'membres' => 'Membres',
+                'administration' => 'Administration',
+                'administration.propositions' => 'Administration — Propositions',
+                'database' => 'Base de données',
+                'confidentialite' => 'Confidentialité',
+                'mentions-legales' => 'Mentions légales',
+                'notifications.list' => 'Notifications',
+            ];
+            $rawTitle = $map[$routeName] ?? '';
+        }
+        $finalTitle = $rawTitle === '' ? 'Lupistar' : (str_starts_with($rawTitle, 'Lupistar') ? $rawTitle : 'Lupistar — '.$rawTitle);
+    @endphp
+    <title>{{ $finalTitle }}</title>
     <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
     <link rel="stylesheet" href="{{ asset('css/style-navigation.css') }}">
     <link rel="stylesheet" href="{{ asset('css/style.css') }}">

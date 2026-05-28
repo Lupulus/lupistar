@@ -131,6 +131,38 @@
     accent-color: var(--accent-orange);
 }
 
+.sg-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem 1rem;
+    align-items: center;
+    margin: 0.25rem 0 0.5rem 0;
+    font-size: 0.85rem;
+    color: var(--text-medium-gray);
+}
+
+.sg-legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-weight: 700;
+}
+
+.admin-film-modif-checkbox.sg-tmdb,
+.sg-legend-item.sg-tmdb {
+    color: #f1c40f;
+}
+
+.admin-film-modif-checkbox.sg-manual,
+.sg-legend-item.sg-manual {
+    color: #2ecc71;
+}
+
+.admin-film-modif-checkbox.sg-anime,
+.sg-legend-item.sg-anime {
+    color: #9b59b6;
+}
+
 .admin-film-modif-image-hint {
     margin-top: 6px;
     font-size: 0.9rem;

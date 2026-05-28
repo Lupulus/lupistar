@@ -292,9 +292,41 @@
                         </div>
                         <div class="admin-film-modif-group admin-film-modif-group-full">
                             <label>Sous-genres <span class="admin-film-modif-required">*</span></label>
+                            @php
+                                $animeSousGenres = ['Mecha', 'Shôjo', 'Shônen', 'Slice of life', 'Sport'];
+                                $manualSousGenres = ['Conte', 'Cyberpunk', 'Post-apocalyptique', 'Noël'];
+
+                                $tmdbSousGenres = [];
+                                $manualSousGenresList = [];
+                                $animeSousGenresList = [];
+
+                                foreach ($sousGenres as $gid => $gnom) {
+                                    if (in_array($gnom, $animeSousGenres, true)) {
+                                        $animeSousGenresList[$gid] = $gnom;
+                                    } elseif (in_array($gnom, $manualSousGenres, true)) {
+                                        $manualSousGenresList[$gid] = $gnom;
+                                    } else {
+                                        $tmdbSousGenres[$gid] = $gnom;
+                                    }
+                                }
+
+                                uasort($tmdbSousGenres, fn ($a, $b) => strnatcasecmp($a, $b));
+                                uasort($manualSousGenresList, fn ($a, $b) => strnatcasecmp($a, $b));
+                                uasort($animeSousGenresList, fn ($a, $b) => strnatcasecmp($a, $b));
+
+                                $orderedSousGenres = $tmdbSousGenres + $manualSousGenresList + $animeSousGenresList;
+                            @endphp
+                            <div class="sg-legend">
+                                <span class="sg-legend-item sg-tmdb">TMDb (auto)</span>
+                                <span class="sg-legend-item sg-manual">Manuel</span>
+                                <span class="sg-legend-item sg-anime">Anime</span>
+                            </div>
                             <div id="edit-sous-genres" class="admin-film-modif-checkbox-grid">
-                                @foreach($sousGenres as $gid => $gnom)
-                                    <label class="admin-film-modif-checkbox"><input type="checkbox" value="{{ $gid }}"> {{ $gnom }}</label>
+                                @foreach($orderedSousGenres as $gid => $gnom)
+                                    @php
+                                        $sgClass = in_array($gnom, $animeSousGenres, true) ? 'sg-anime' : (in_array($gnom, $manualSousGenres, true) ? 'sg-manual' : 'sg-tmdb');
+                                    @endphp
+                                    <label class="admin-film-modif-checkbox {{ $sgClass }}"><input type="checkbox" value="{{ $gid }}"> {{ $gnom }}</label>
                                 @endforeach
                             </div>
                             <div id="edit-sous-genre-warning" class="admin-film-modif-warning" style="display:none;">⚠️ Sélectionnez au moins un sous-genre.</div>

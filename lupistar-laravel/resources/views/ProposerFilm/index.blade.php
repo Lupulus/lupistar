@@ -7,6 +7,29 @@
 @section('content')
     @php
         $categories = ['Film', 'Animation', 'Anime', 'Série', "Série d'Animation"];
+
+        $animeSousGenres = ['Mecha', 'Shôjo', 'Shônen', 'Slice of life', 'Sport'];
+        $manualSousGenres = ['Conte', 'Cyberpunk', 'Post-apocalyptique', 'Noël'];
+
+        $tmdbSousGenres = [];
+        $manualSousGenresList = [];
+        $animeSousGenresList = [];
+
+        foreach ($sousGenres as $id => $nom) {
+            if (in_array($nom, $animeSousGenres, true)) {
+                $animeSousGenresList[$id] = $nom;
+            } elseif (in_array($nom, $manualSousGenres, true)) {
+                $manualSousGenresList[$id] = $nom;
+            } else {
+                $tmdbSousGenres[$id] = $nom;
+            }
+        }
+
+        uasort($tmdbSousGenres, fn ($a, $b) => strnatcasecmp($a, $b));
+        uasort($manualSousGenresList, fn ($a, $b) => strnatcasecmp($a, $b));
+        uasort($animeSousGenresList, fn ($a, $b) => strnatcasecmp($a, $b));
+
+        $sousGenres = $tmdbSousGenres + $manualSousGenresList + $animeSousGenresList;
         $sousGenresKeys = array_keys($sousGenres);
         $totalSousGenres = count($sousGenresKeys);
         $colonnes = 6;
@@ -163,6 +186,11 @@
                 <div class="form-section full-width">
                     <div class="form-group">
                         <label id="sous-genres_label">Sous-genres :</label>
+                        <div class="sg-legend">
+                            <span class="sg-legend-item sg-tmdb">TMDb (auto)</span>
+                            <span class="sg-legend-item sg-manual">Manuel</span>
+                            <span class="sg-legend-item sg-anime">Anime</span>
+                        </div>
                         <div id="sous-genres-container">
                             <table>
                                 <tbody>
@@ -177,7 +205,10 @@
                                                         $checked = in_array((string) $id, array_map('strval', $oldSousGenres), true);
                                                     @endphp
                                                     <td>
-                                                        <label class="checkbox-label">
+                                                        @php
+                                                            $sgClass = in_array($nom, $animeSousGenres, true) ? 'sg-anime' : (in_array($nom, $manualSousGenres, true) ? 'sg-manual' : 'sg-tmdb');
+                                                        @endphp
+                                                        <label class="checkbox-label {{ $sgClass }}">
                                                             <input type="checkbox" name="sous_genres[]" value="{{ $id }}" @checked($checked)> {{ $nom }}
                                                         </label>
                                                     </td>

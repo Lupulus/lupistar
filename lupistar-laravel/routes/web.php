@@ -27,6 +27,8 @@ Route::get('/liste', [ListeController::class, 'index'])->name('liste');
 Route::get('/ma-liste', [ListeController::class, 'myList'])->name('ma-liste');
 
 Route::prefix('api')->group(function () {
+    Route::get('/accueil/recommendations', [AccueilController::class, 'recommendations'])->name('api.accueil.recommendations');
+
     Route::get('/liste/filters', [ListeApiController::class, 'filters'])->name('api.liste.filters');
     Route::get('/liste/stats', [ListeApiController::class, 'stats'])->name('api.liste.stats');
     Route::get('/liste/films', [ListeApiController::class, 'films'])->name('api.liste.films');
