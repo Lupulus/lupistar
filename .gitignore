@@ -73,6 +73,15 @@ php.ini
 debug.php
 test.php
 
+# Exports / documents / fichiers de modélisation
+SchémaMLD.png
+*.lo1
+*.loo
+backup_lupistar.sh
+*.docx
+*.pdf
+FigmaMaquetteLupistar.png
+
 # Documentation générée
 /docs/build/
 /api-docs/
