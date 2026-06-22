@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Film;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use MongoDB\BSON\ObjectId;
@@ -196,9 +197,9 @@ class ForumApiController extends Controller
                     'locked' => (bool) $r->locked,
                     'views' => (int) ($r->views ?? 0),
                     'author' => (string) ($r->username ?? ''),
-                    'created_at' => $r->created_at ? \Carbon\Carbon::parse((string) $r->created_at)->toIso8601String() : '',
-                    'updated_at' => $r->updated_at ? \Carbon\Carbon::parse((string) $r->updated_at)->toIso8601String() : '',
-                    'last_comment_at' => $r->last_comment_at ? \Carbon\Carbon::parse((string) $r->last_comment_at)->toIso8601String() : '',
+                    'created_at' => $r->created_at ? Carbon::parse((string) $r->created_at)->toIso8601String() : '',
+                    'updated_at' => $r->updated_at ? Carbon::parse((string) $r->updated_at)->toIso8601String() : '',
+                    'last_comment_at' => $r->last_comment_at ? Carbon::parse((string) $r->last_comment_at)->toIso8601String() : '',
                     'last_comment_by' => (string) ($r->last_username ?? ''),
                     'replies_count' => max(0, $comments - 1),
                 ];

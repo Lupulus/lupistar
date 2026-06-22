@@ -3,6 +3,8 @@
     "private": true,
     "type": "module",
     "scripts": {
+        "lint:php": "php ./vendor/bin/pint",
+        "lint:php:test": "php ./vendor/bin/pint --test",
         "build": "vite build",
         "dev": "vite"
     },

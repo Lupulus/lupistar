@@ -93,4 +93,3 @@ HTML;
         return (bool) preg_match('/\b(Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Windows Phone|Opera Mini|Mobile)\b/i', $ua);
     }
 }
-

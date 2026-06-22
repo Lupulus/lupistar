@@ -251,6 +251,7 @@ class ListeService
             $k = "r_{$min}_{$max}";
             $out['ranges']["{$min}-{$max}"] = (int) ($row->{$k} ?? 0);
         }
+
         return $out;
     }
 
@@ -295,6 +296,7 @@ class ListeService
             $k = "r_{$min}_{$max}";
             $out['ranges']["{$min}-{$max}"] = (int) ($row->{$k} ?? 0);
         }
+
         return $out;
     }
 

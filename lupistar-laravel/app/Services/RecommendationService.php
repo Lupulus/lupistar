@@ -159,7 +159,9 @@ class RecommendationService
 
             $fsg = $sgByFilm[(int) $film->id] ?? [];
             foreach ($fsg as $gid) {
-                if (! array_key_exists($gid, $sgRank)) continue;
+                if (! array_key_exists($gid, $sgRank)) {
+                    continue;
+                }
                 $r = (int) $sgRank[$gid];
                 $score += max(0, 6 - $r) * 0.65;
             }
@@ -167,8 +169,12 @@ class RecommendationService
             $year = is_numeric($film->date_sortie) ? (int) $film->date_sortie : null;
             if ($targetDecade !== null && $year !== null) {
                 $decade = (int) (floor($year / 10) * 10);
-                if ($decade === $targetDecade) $score += 1.2;
-                if ($decade === $targetDecade - 10) $score += 0.6;
+                if ($decade === $targetDecade) {
+                    $score += 1.2;
+                }
+                if ($decade === $targetDecade - 10) {
+                    $score += 0.6;
+                }
             }
 
             $avg = $film->getAttribute('note_moyenne_global');
@@ -178,6 +184,7 @@ class RecommendationService
             }
 
             $film->setAttribute('_reco_score', $score);
+
             return $film;
         });
 
@@ -192,7 +199,9 @@ class RecommendationService
                 ->take($quota);
             foreach ($items as $film) {
                 $fid = (int) $film->id;
-                if (isset($pickedIds[$fid])) continue;
+                if (isset($pickedIds[$fid])) {
+                    continue;
+                }
                 $pickedIds[$fid] = true;
                 $out->push($film);
             }
@@ -200,9 +209,13 @@ class RecommendationService
 
         if ($out->count() < $limit) {
             foreach ($sorted as $film) {
-                if ($out->count() >= $limit) break;
+                if ($out->count() >= $limit) {
+                    break;
+                }
                 $fid = (int) $film->id;
-                if (isset($pickedIds[$fid])) continue;
+                if (isset($pickedIds[$fid])) {
+                    continue;
+                }
                 $pickedIds[$fid] = true;
                 $out->push($film);
             }
@@ -256,6 +269,7 @@ class RecommendationService
         }
 
         $slice = $films->shuffle()->take($limit)->values();
+
         return $this->finalizeFilms($slice, $seed);
     }
 
@@ -263,10 +277,13 @@ class RecommendationService
     {
         $accueil = app(AccueilService::class);
         foreach ($films as $film) {
-            if (! $film instanceof Film) continue;
+            if (! $film instanceof Film) {
+                continue;
+            }
             $film->setAttribute('image_asset_path', $accueil->toPublicAssetPath($film->image_path));
             $film->setAttribute('_seed', $seed);
         }
+
         return $films;
     }
 
@@ -282,7 +299,9 @@ class RecommendationService
         foreach ($categoryCounts as $row) {
             $cat = (string) ($row['categorie'] ?? '');
             $count = (int) ($row['total'] ?? 0);
-            if ($cat === '' || $count <= 0) continue;
+            if ($cat === '' || $count <= 0) {
+                continue;
+            }
             $q = (int) round(($count / $total) * $limit);
             $q = max(2, $q);
             $quotas[$cat] = $q;
@@ -297,8 +316,12 @@ class RecommendationService
             arsort($quotas);
             while (array_sum($quotas) > $limit) {
                 foreach ($quotas as $cat => $q) {
-                    if (array_sum($quotas) <= $limit) break;
-                    if ($q <= 1) continue;
+                    if (array_sum($quotas) <= $limit) {
+                        break;
+                    }
+                    if ($q <= 1) {
+                        continue;
+                    }
                     $quotas[$cat] = $q - 1;
                 }
             }
@@ -331,7 +354,9 @@ class RecommendationService
             ->havingRaw('COUNT(*) >= 6')
             ->get();
 
-        if ($seenByDecade->isEmpty()) return null;
+        if ($seenByDecade->isEmpty()) {
+            return null;
+        }
 
         $decades = $seenByDecade->pluck('decade')->map(fn ($v) => (int) $v)->all();
         $allByDecade = DB::table('films as f')
@@ -347,7 +372,9 @@ class RecommendationService
             $decade = (int) $row->decade;
             $seen = (int) $row->total_seen;
             $all = isset($allByDecade[$decade]) ? (int) $allByDecade[$decade]->total_all : 0;
-            if ($all <= 0) continue;
+            if ($all <= 0) {
+                continue;
+            }
             $ratio = $seen / $all;
             if ($ratio > $bestRatio) {
                 $bestRatio = $ratio;

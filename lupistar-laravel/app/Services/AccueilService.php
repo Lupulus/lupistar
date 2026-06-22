@@ -88,14 +88,18 @@ class AccueilService
                 $this->attachAvgNotes(collect([$fallback]));
                 $fallback->setAttribute('image_asset_path', $this->toPublicAssetPath($fallback->image_path));
             }
+
             return $fallback;
         }
 
         $picked = $candidates->random(1)->first();
-        if (! $picked) return null;
+        if (! $picked) {
+            return null;
+        }
 
         $this->attachAvgNotes(collect([$picked]));
         $picked->setAttribute('image_asset_path', $this->toPublicAssetPath($picked->image_path));
+
         return $picked;
     }
 
@@ -177,7 +181,9 @@ class AccueilService
     private function attachAvgNotes(Collection $films): Collection
     {
         $ids = $films->pluck('id')->filter(fn ($v) => is_numeric($v))->map(fn ($v) => (int) $v)->values()->all();
-        if ($ids === []) return $films;
+        if ($ids === []) {
+            return $films;
+        }
 
         $avg = DB::table('membres_films_list')
             ->whereIn('films_id', $ids)
@@ -188,9 +194,13 @@ class AccueilService
             ->keyBy(fn ($r) => (int) $r->films_id);
 
         foreach ($films as $film) {
-            if (! $film instanceof Film) continue;
+            if (! $film instanceof Film) {
+                continue;
+            }
             $fid = (int) $film->id;
-            if (! isset($avg[$fid])) continue;
+            if (! isset($avg[$fid])) {
+                continue;
+            }
             $film->setAttribute('note_moyenne_global', (float) $avg[$fid]->avg_note);
         }
 

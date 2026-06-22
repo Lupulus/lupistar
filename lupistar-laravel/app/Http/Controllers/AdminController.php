@@ -312,7 +312,9 @@ class AdminController extends Controller
                 ->filter(fn ($n) => ! in_array($n, $ignore, true))
                 ->map(function (string $n) {
                     $raw = trim($n);
-                    if ($raw === '') return null;
+                    if ($raw === '') {
+                        return null;
+                    }
 
                     $key = mb_strtolower($raw);
                     $map = [
@@ -337,8 +339,12 @@ class AdminController extends Controller
                         'science fiction & fantastique' => 'Science-fiction & Fantastique',
                     ];
 
-                    if (isset($map[$key])) return $map[$key];
-                    if ($key === 'action & adventure' || $key === 'action and adventure') return null;
+                    if (isset($map[$key])) {
+                        return $map[$key];
+                    }
+                    if ($key === 'action & adventure' || $key === 'action and adventure') {
+                        return null;
+                    }
 
                     return $raw;
                 })
