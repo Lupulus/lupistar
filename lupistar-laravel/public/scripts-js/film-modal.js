@@ -1,8 +1,17 @@
+/*
+ * film-modal.js — Gestion de la modale d'un film côté navigateur (front-end).
+ * Rôle : ouvrir la fiche d'un film, permettre la NOTATION et la mise à jour
+ * de l'affichage sans recharger la page (requêtes AJAX vers le serveur Laravel).
+ */
 document.addEventListener('DOMContentLoaded', function () {
+    // Éléments de la modale présents dans la page.
     const modal = document.getElementById('film-modal');
     const modalContent = document.getElementById('modal-content');
+    // Jeton CSRF lu dans la balise <meta> : il sécurise les requêtes POST
+    // (protection contre les attaques Cross-Site Request Forgery).
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
 
+    // Si la modale n'existe pas sur cette page, on n'initialise rien.
     if (!modal || !modalContent) return;
 
     const closeModal = () => {
@@ -15,19 +24,30 @@ document.addEventListener('DOMContentLoaded', function () {
         }, 300);
     };
 
+    /*
+     * Petit utilitaire d'envoi de données au serveur en POST, via fetch (AJAX).
+     * On joint systématiquement le jeton CSRF dans les en-têtes pour que
+     * Laravel accepte la requête. Renvoie une promesse (réponse du serveur).
+     */
     const postForm = (url, body) => {
         return fetch(url, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
-                'X-Requested-With': 'XMLHttpRequest',
-                ...(csrfToken ? { 'X-CSRF-TOKEN': csrfToken } : {}),
+                'X-Requested-With': 'XMLHttpRequest', // indique une requête AJAX
+                ...(csrfToken ? { 'X-CSRF-TOKEN': csrfToken } : {}), // sécurité CSRF
             },
             body,
         });
     };
 
+    /*
+     * Met à jour l'affichage de la note moyenne d'un film (étoiles + valeur)
+     * partout où il apparaît dans la page, SANS recharger : sur la fiche
+     * récente et dans la grille du catalogue. Appelée après une notation.
+     */
     const updateRecentFilmStars = (filmId, nouvelleNoteMoyenne) => {
+        // Si aucune note, on affiche un tiret ; sinon la nouvelle moyenne.
         const value = nouvelleNoteMoyenne === null || nouvelleNoteMoyenne === undefined ? '-' : nouvelleNoteMoyenne;
 
         const recentItem = document.querySelector(`.recent-film-item[data-id="${filmId}"]`);
@@ -139,13 +159,19 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     };
 
+    /*
+     * Active l'édition de "Ma note" dans la modale : le crayon affiche un
+     * champ de saisie, et la note est envoyée au serveur quand on valide.
+     */
     const setupNoteEditing = () => {
-        const editNote = document.getElementById('edit-note');
-        const userNote = document.getElementById('user-note');
-        const noteInput = document.getElementById('note-input');
+        const editNote = document.getElementById('edit-note');   // crayon ✏️
+        const userNote = document.getElementById('user-note');   // texte "Ma note"
+        const noteInput = document.getElementById('note-input'); // champ de saisie
 
+        // Si ces éléments ne sont pas présents, on ne fait rien.
         if (!editNote || !userNote || !noteInput) return;
 
+        // Clic sur le crayon : on bascule du texte vers le champ de saisie.
         editNote.addEventListener('click', function () {
             const raw = (userNote.textContent || '').replace('/10', '').trim();
             noteInput.value = parseFloat(raw) || '';
@@ -155,19 +181,28 @@ document.addEventListener('DOMContentLoaded', function () {
             noteInput.focus();
         });
 
+        /*
+         * Enregistre la note saisie : c'est le cœur de la fonctionnalité.
+         * 1) on récupère l'id du film, 2) on valide la note côté client,
+         * 3) on l'envoie au serveur (POST AJAX), 4) on met à jour l'affichage.
+         */
         const saveUserNote = () => {
+            // 1) Identifiant du film en cours dans la modale.
             const filmId = modalContent.getAttribute('data-id');
             if (!filmId || isNaN(filmId) || parseInt(filmId, 10) === 0) {
                 alert("Impossible de sauvegarder la note, l'ID du film est invalide.");
                 return;
             }
 
+            // 2) Validation côté client (bornes 0 à 10). La validation est
+            //    AUSSI refaite côté serveur : on ne fait jamais confiance au client.
             const newNote = parseFloat(noteInput.value);
             if (newNote < 0 || newNote > 10 || isNaN(newNote)) {
                 alert('Veuillez entrer une note valide entre 0 et 10.');
                 return;
             }
 
+            // 3) Envoi de la note au serveur (route POST /films/{id}/note).
             postForm(`/films/${filmId}/note`, `note=${encodeURIComponent(newNote)}`)
                 .then((response) => response.json())
                 .then((data) => {
@@ -176,6 +211,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         return;
                     }
 
+                    // 4) Succès : on remet l'affichage en mode lecture...
                     userNote.textContent = `${newNote}/10`;
                     userNote.style.display = 'inline';
                     editNote.style.display = 'inline';
@@ -189,6 +225,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 });
         };
 
+        // On enregistre la note quand le champ perd le focus ou sur "Entrée".
         noteInput.addEventListener('blur', saveUserNote);
         noteInput.addEventListener('keypress', function (event) {
             if (event.key === 'Enter') {
@@ -273,10 +310,16 @@ document.addEventListener('DOMContentLoaded', function () {
             });
     };
 
+    /*
+     * Ouvre la modale d'un film : récupère le contenu de la fiche auprès du
+     * serveur (AJAX), l'injecte dans la page, puis branche les interactions
+     * (fermeture, ajout à la liste, notation, graphique des notes).
+     */
     const openModalForFilmId = async (filmId) => {
         if (!filmId) return;
 
         try {
+            // Récupération du HTML de la fiche film auprès du serveur.
             const response = await fetch(`/films/${filmId}/modal`, {
                 headers: { 'X-Requested-With': 'XMLHttpRequest' },
             });
@@ -286,20 +329,22 @@ document.addEventListener('DOMContentLoaded', function () {
                 return;
             }
 
+            // Injection du contenu reçu dans la modale, puis affichage.
             const html = await response.text();
             modalContent.innerHTML = html;
             modalContent.setAttribute('data-id', filmId);
             modal.style.display = 'flex';
 
+            // Une fois le contenu en place, on active les interactions.
             setTimeout(() => {
                 const closeButton = modalContent.querySelector('.modal-close');
                 if (closeButton) {
                     closeButton.addEventListener('click', closeModal);
                 }
 
-                setupFavoriteToggle();
-                setupNoteEditing();
-                loadNoteGraph(filmId);
+                setupFavoriteToggle();   // bouton "ajouter à ma liste"
+                setupNoteEditing();      // édition de la note
+                loadNoteGraph(filmId);   // graphique de répartition des notes
             }, 50);
         } catch (error) {
             console.error('❌ Erreur lors de la récupération des détails du film :', error);
@@ -307,20 +352,24 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     };
 
+    // Expose la fonction au reste de la page (appelée depuis d'autres scripts).
     window.openFilmModalForFilmId = openModalForFilmId;
 
+    // Fermer la modale en cliquant en dehors de son contenu.
     modal.addEventListener('click', function (event) {
         if (!modalContent.contains(event.target)) {
             closeModal();
         }
     });
 
+    // Fermer la modale avec la touche Échap.
     document.addEventListener('keydown', function (event) {
         if (event.key === 'Escape' && modal.style.display === 'flex') {
             closeModal();
         }
     });
 
+    // Ouvrir la modale au clic sur une carte de film (ou l'icône loup "wolf-view").
     document.addEventListener('click', (event) => {
         const wolf = event.target.closest('.wolf-view');
         if (wolf) {

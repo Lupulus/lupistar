@@ -1,4 +1,5 @@
 (() => {
+  // Point d'entrée isolé pour éviter de polluer le scope global.
   function getStatusEl() {
     let el = document.getElementById('tmdb-autofill-status');
     if (!el) {
@@ -76,6 +77,7 @@
       .replace(/\s+/g, ' ')
       .trim();
 
+    // Mapping "simple" entre libellés TMDb / synonymes et libellés internes Lupistar.
     const SIMPLE_MAP = {
       'action': 'Action',
       'adventure': 'Aventure',
@@ -141,6 +143,8 @@
       'animation familiale': 'Familial',
     };
 
+    // Certains genres TMDb arrivent sous forme combinée et doivent être conservés
+    // comme un seul sous-genre métier chez 
     const COMBINED_MAP = {
       'action & adventure': ['Action', 'Aventure'],
       'action and adventure': ['Action', 'Aventure'],
@@ -153,6 +157,7 @@
       'science fiction et fantastique': ['Science-fiction & Fantastique'],
     };
 
+    // Déplie les genres TMDb en libellés compatibles avec les cases à cocher locales.
     const expandGenres = (arr) => {
       const out = [];
       const push = (v) => {
@@ -224,6 +229,7 @@
       .trim();
   }
 
+  // Synonymes ISO -> libellés attendus dans le select local des pays.
   const ISO_TO_LOCAL = {
     'US': ['etats unis','etat unis','usa','etats-unis'],
     'GB': ['royaume uni','angleterre','uk','grande bretagne'],
@@ -258,6 +264,7 @@
     'UA': ['ukraine','ukraina','ukraine (ukraine)'],
   };
 
+  // Fallback par nom de pays lorsque TMDb ne renvoie pas d'ISO exploitable.
   const NAME_TO_LOCAL = {
     'united states of america': ISO_TO_LOCAL['US'],
     'united kingdom': ISO_TO_LOCAL['GB'],
@@ -299,6 +306,8 @@
     const options = Array.from(paysSelect.options);
     const optionTexts = options.map(o => ({ opt: o, text: normalize(o.textContent || '') }));
 
+    // On tente un matching souple sur le texte, car les options locales contiennent
+    // aussi les drapeaux/emojis et parfois des variantes de libellés.
     const tryMatchTexts = (texts, matchedIso) => {
       for (const t of texts || []) {
         const nt = normalize(t);
@@ -390,6 +399,8 @@
     }
 
     const desc = document.getElementById('description');
+    // La description n'est écrasée automatiquement que si elle est vide
+    // ou si elle provient déjà d'un précédent autofill TMDb.
     if (desc && d.overview) {
       const truncated = String(d.overview).slice(0, 400);
       const current = String(desc.value || '').trim();
@@ -416,6 +427,8 @@
     const countriesIso = Array.isArray(d.countries_iso) ? d.countries_iso : [];
     selectCountry(pays, countries, countriesIso);
 
+    // Les séries peuvent être remplies soit au niveau global, soit au niveau
+    // d'une saison précise lorsque "saison détaillée" est activé.
     if (isSerie) {
       const saisonInput = document.getElementById('saison');
       const nbrEpisodeInput = document.getElementById('nbrEpisode');
@@ -493,6 +506,8 @@
     const saisonDetaillee = form.querySelector('#saison_detaillee');
     const numSaison = form.querySelector('#num_saison');
 
+    // Le bouton n'est activé que lorsque TMDb a assez d'informations
+    // pour faire une recherche fiable et limiter les faux positifs.
     const updatePrereqs = () => {
       const baseOk =
         String(titleInput.value || '').trim().length > 0 &&

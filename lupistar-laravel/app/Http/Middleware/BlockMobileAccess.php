@@ -8,12 +8,20 @@ use Symfony\Component\HttpFoundation\Response;
 
 class BlockMobileAccess
 {
+    /**
+     * Bloque l'accès mobile sur tout le groupe web.
+     *
+     * Le refus est géré côté serveur pour éviter qu'un simple contournement CSS/JS
+     * laisse l'application accessible depuis un mobile.
+     */
     public function handle(Request $request, Closure $next): Response
     {
         if (! $this->isMobileRequest($request)) {
             return $next($request);
         }
 
+        // Les endpoints AJAX/API reçoivent une réponse JSON explicite afin que
+        // le front puisse gérer proprement le refus si nécessaire.
         if ($request->expectsJson()) {
             return response()->json([
                 'message' => 'Lupistar n’est pas accessible sur mobile.',
@@ -78,6 +86,9 @@ HTML;
         ]);
     }
 
+    /**
+     * Détection mobile via Client Hints quand disponibles, puis fallback User-Agent.
+     */
     private function isMobileRequest(Request $request): bool
     {
         $chMobile = $request->header('Sec-CH-UA-Mobile');

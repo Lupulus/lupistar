@@ -9,6 +9,10 @@ use Illuminate\Support\Facades\DB;
 
 class AccueilService
 {
+    /**
+     * Retourne l'ordre des catégories voulu par l'utilisateur.
+     * Si aucune préférence n'existe, on bascule sur l'ordre par défaut du site.
+     */
     public function categoriesOrderForUser(?int $userId): array
     {
         $default = ['Film', 'Série', 'Animation', "Série d'Animation", 'Anime'];
@@ -34,6 +38,10 @@ class AccueilService
         return array_values(array_filter($decoded, fn ($v) => is_string($v) && $v !== ''));
     }
 
+    /**
+     * Ancienne logique d'accueil : films récents regroupés par catégorie.
+     * Elle reste utile pour d'autres vues ou pour d'éventuels retours arrière.
+     */
     public function recentFilmsByCategory(array $categories, int $limit = 15): array
     {
         $result = [];
@@ -57,6 +65,9 @@ class AccueilService
         return $result;
     }
 
+    /**
+     * Bloc "Ajouts récents" unifié de la nouvelle page d'accueil.
+     */
     public function recentFilmsAll(int $limit = 30): Collection
     {
         $films = Film::query()
@@ -72,6 +83,9 @@ class AccueilService
         });
     }
 
+    /**
+     * Choisit un film récent à mettre en avant dans le hero.
+     */
     public function heroFilm(): ?Film
     {
         $year = (int) now()->year;
@@ -103,6 +117,12 @@ class AccueilService
         return $picked;
     }
 
+    /**
+     * Construit le bloc "Voyage" du jour.
+     *
+     * Le pays est choisi de manière déterministe par date avec une pondération
+     * inverse au volume pour favoriser les pays rares.
+     */
     public function voyageForDay(int $minFilms = 5, int $limit = 8): array
     {
         $rows = DB::table('films as f')
@@ -121,6 +141,8 @@ class AccueilService
             return ['pays' => null, 'films' => collect()];
         }
 
+        // Le seed dépend uniquement de la date pour garder un résultat stable
+        // sur une journée entière, tout en changeant automatiquement le lendemain.
         $seed = (int) sprintf('%u', crc32(date('Y-m-d')));
         $weights = [];
         $sum = 0.0;
@@ -159,6 +181,9 @@ class AccueilService
         return ['pays' => $paysNom, 'films' => $films];
     }
 
+    /**
+     * Convertit les anciens chemins d'images vers un chemin exploitable par asset().
+     */
     public function toPublicAssetPath(?string $path): ?string
     {
         if (! is_string($path) || trim($path) === '') {
@@ -178,6 +203,9 @@ class AccueilService
         return ltrim($normalized, '/');
     }
 
+    /**
+     * Ajoute la note moyenne globale sur une collection déjà chargée.
+     */
     private function attachAvgNotes(Collection $films): Collection
     {
         $ids = $films->pluck('id')->filter(fn ($v) => is_numeric($v))->map(fn ($v) => (int) $v)->values()->all();

@@ -113,6 +113,9 @@ Route::post('/reset-password', [PasswordController::class, 'performReset'])->nam
 
 Route::get('/films/{film}/modal', [FilmModalController::class, 'show'])->name('films.modal');
 Route::post('/films/{film}/personal-list', [FilmPersonalListController::class, 'update'])->name('films.personalList.update');
+
+// Notation d'un film : POST = enregistrer ma note (appel AJAX) ; GET = lire la répartition des notes.
+// {film} est résolu automatiquement par Laravel en objet Film (route model binding).
 Route::post('/films/{film}/note', [FilmNoteController::class, 'update'])->name('films.note.update');
 Route::get('/films/{film}/notes', [FilmNotesController::class, 'show'])->name('films.notes.show');
 Route::get('/notifications/unread-count', [NotificationsController::class, 'unreadCount'])->name('notifications.unreadCount');

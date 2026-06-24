@@ -8,6 +8,13 @@ use Illuminate\Support\Facades\DB;
 
 class RecommendationService
 {
+    /**
+     * Produit une sélection de recommandations pour l'accueil.
+     *
+     * Pour un visiteur non connecté, on retombe sur une sélection de films très bien notés.
+     * Pour un membre connecté, on calcule un score à partir de l'historique personnel :
+     * catégories, sous-genres, studios, auteurs et période préférée.
+     */
     public function recommendations(?int $userId, bool $includeSeen = false, int $limit = 18, ?int $seed = null): Collection
     {
         if (! $userId) {
@@ -73,6 +80,8 @@ class RecommendationService
         $bestDecade = $this->bestDecade($userId);
         $targetDecade = $bestDecade !== null ? $bestDecade + 10 : null;
 
+        // On joint la note moyenne globale pour réinjecter un signal "qualité"
+        // dans l'algorithme sans perdre la logique principale basée sur les goûts.
         $avgNotesSub = DB::table('membres_films_list')
             ->select([
                 'films_id',
@@ -183,6 +192,8 @@ class RecommendationService
                 $score += min(10.0, $avgFloat) * 0.25;
             }
 
+            // Le score final est gardé en attribut temporaire pour permettre
+            // un tri puis un quota par catégorie sans toucher au schéma.
             $film->setAttribute('_reco_score', $score);
 
             return $film;
@@ -190,6 +201,8 @@ class RecommendationService
 
         $sorted = $scored->sortByDesc(fn (Film $f) => (float) $f->getAttribute('_reco_score'))->values();
 
+        // Les quotas évitent qu'une seule catégorie domine tout le bloc
+        // de recommandations lorsqu'un utilisateur a un historique très biaisé.
         $quotas = $this->categoryQuotas($categoryCounts, $limit);
         $pickedIds = [];
         $out = collect();
@@ -224,6 +237,10 @@ class RecommendationService
         return $this->finalizeFilms($out, $seed);
     }
 
+    /**
+     * Fallback pour les visiteurs ou lorsqu'on n'a pas assez de matière
+     * pour personnaliser proprement la sélection.
+     */
     private function topRated(int $limit, ?int $seed, array $excludeIds = []): Collection
     {
         $seed = is_int($seed) ? $seed : random_int(1, 1000000);
@@ -273,6 +290,9 @@ class RecommendationService
         return $this->finalizeFilms($slice, $seed);
     }
 
+    /**
+     * Normalise les films renvoyés pour l'affichage en front.
+     */
     private function finalizeFilms(Collection $films, int $seed): Collection
     {
         $accueil = app(AccueilService::class);
@@ -287,6 +307,9 @@ class RecommendationService
         return $films;
     }
 
+    /**
+     * Répartit le nombre de cartes par catégorie selon le profil utilisateur.
+     */
     private function categoryQuotas(array $categoryCounts, int $limit): array
     {
         $total = array_sum(array_map(fn ($r) => (int) ($r['total'] ?? 0), $categoryCounts));
@@ -343,6 +366,10 @@ class RecommendationService
         return $quotas;
     }
 
+    /**
+     * Cherche la décennie la plus "consommée" par l'utilisateur
+     * afin de pousser des recommandations proches temporellement.
+     */
     private function bestDecade(int $userId): ?int
     {
         $seenByDecade = DB::table('films as f')
