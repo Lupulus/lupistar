@@ -81,6 +81,8 @@ backup_lupistar.sh
 *.docx
 *.pdf
 FigmaMaquetteLupistar.png
+captureGitHub-WorkflowLintTest.png
+Presentation_Orale_Lupistar.pptx
 
 # Documentation générée
 /docs/build/

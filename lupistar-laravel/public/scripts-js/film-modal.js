@@ -14,6 +14,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // Si la modale n'existe pas sur cette page, on n'initialise rien.
     if (!modal || !modalContent) return;
 
+    // Ferme la modale avec une petite animation, puis vide son contenu.
     const closeModal = () => {
         modal.style.opacity = '0';
         setTimeout(() => {
@@ -77,6 +78,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     };
 
+    // Retire le bloc "Ma note" (quand le film est retiré de la liste).
     const removeUserNoteSection = () => {
         const userNoteContainer = document.querySelector('.user-note-container');
         if (userNoteContainer) {
@@ -84,6 +86,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     };
 
+    // Ajoute le bloc "Ma note" dans la modale (quand le film est ajouté à la liste).
     const displayUserNoteSection = () => {
         const userNoteContainer = document.querySelector('.user-note-container');
         if (userNoteContainer) return;
@@ -105,6 +108,7 @@ document.addEventListener('DOMContentLoaded', function () {
         setupNoteEditing();
     };
 
+    // Bouton "ajouter / retirer de Ma Liste" (icône loup) : envoie l'action au serveur.
     const setupFavoriteToggle = () => {
         const favoriteButton = modalContent.querySelector('.wolf-view');
         if (!favoriteButton) return;
@@ -164,7 +168,7 @@ document.addEventListener('DOMContentLoaded', function () {
      * champ de saisie, et la note est envoyée au serveur quand on valide.
      */
     const setupNoteEditing = () => {
-        const editNote = document.getElementById('edit-note');   // crayon ✏️
+        const editNote = document.getElementById('edit-note');   // crayon
         const userNote = document.getElementById('user-note');   // texte "Ma note"
         const noteInput = document.getElementById('note-input'); // champ de saisie
 
@@ -182,7 +186,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
 
         /*
-         * Enregistre la note saisie : c'est le cœur de la fonctionnalité.
+         * Enregistre la note saisie : c'est le coeur de la fonctionnalité.
          * 1) on récupère l'id du film, 2) on valide la note côté client,
          * 3) on l'envoie au serveur (POST AJAX), 4) on met à jour l'affichage.
          */
@@ -204,7 +208,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             // 3) Envoi de la note au serveur (route POST /films/{id}/note).
             postForm(`/films/${filmId}/note`, `note=${encodeURIComponent(newNote)}`)
-                .then((response) => response.json())
+                .then((response) => response.json()) // on lit la réponse JSON
                 .then((data) => {
                     if (!data.success) {
                         alert('Erreur lors de la mise à jour de la note.');
@@ -217,11 +221,12 @@ document.addEventListener('DOMContentLoaded', function () {
                     editNote.style.display = 'inline';
                     noteInput.style.display = 'none';
 
+                    // ...et on rafraîchit la moyenne et le graphique, sans recharger.
                     updateRecentFilmStars(filmId, data.nouvelle_note_moyenne);
                     updateNoteGraph(filmId);
                 })
                 .catch((error) => {
-                    console.error('❌ Erreur AJAX :', error);
+                    console.error('Erreur AJAX :', error);
                 });
         };
 
@@ -234,6 +239,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     };
 
+    // Met à jour le graphique de répartition des notes (barres) déjà affiché.
     const updateNoteGraph = (filmId) => {
         fetch(`/films/${filmId}/notes`, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
             .then((response) => response.json())
@@ -261,10 +267,11 @@ document.addEventListener('DOMContentLoaded', function () {
                 });
             })
             .catch((error) => {
-                console.error('❌ Erreur AJAX lors de la mise à jour du graphique :', error);
+                console.error('Erreur AJAX lors de la mise à jour du graphique :', error);
             });
     };
 
+    // Construit (depuis zéro) le graphique de répartition des notes du film.
     const loadNoteGraph = (filmId) => {
         fetch(`/films/${filmId}/notes`, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
             .then((response) => response.json())
@@ -306,7 +313,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 });
             })
             .catch((error) => {
-                console.error('❌ Erreur AJAX lors du chargement des notes :', error);
+                console.error('Erreur AJAX lors du chargement des notes :', error);
             });
     };
 
@@ -347,7 +354,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 loadNoteGraph(filmId);   // graphique de répartition des notes
             }, 50);
         } catch (error) {
-            console.error('❌ Erreur lors de la récupération des détails du film :', error);
+            console.error('Erreur lors de la récupération des détails du film :', error);
             alert('Impossible de récupérer les détails du film.');
         }
     };
